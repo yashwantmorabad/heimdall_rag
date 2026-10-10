@@ -1,0 +1,9 @@
+# Development and testing dependencies
+-r requirements.txt
+ 
+pytest
+pytest-asyncio
+ruff                    # linting (make lint)
+ 
+# Add later (Phase 5):
+# locust                # load testing
