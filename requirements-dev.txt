@@ -4,6 +4,7 @@
 pytest
 pytest-asyncio
 ruff                    # linting (make lint)
+typer
  
 # Add later (Phase 5):
 # locust                # load testing
