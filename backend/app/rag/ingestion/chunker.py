@@ -13,6 +13,10 @@ class Chunk:
     page_number: int
     #position of this chunk within it's page(0,1,2...)
     chunk_index: int
+    #Embeddings vector (for LLM consumption)
+    embedding:list[float] | None =None
+    #Model used for embedding
+    embedding_model: str | None = None
 
 #Regex to split on MD headings (like #h1,h2## etc.)
 #keeps the heading with the content that follows it.
