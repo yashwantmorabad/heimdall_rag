@@ -27,14 +27,22 @@ Last updated: 2026-10-09
   - Done when: migrations apply successfully to a clean local database.
 - [x] **TASK-009** Create migrations for `tenants`, `users`, and `api_keys`.
   - Done when: tables have the required fields, constraints, and tenant-related indexes defined by the architecture (including `key_prefix`, `key_hash`, `scopes`, `expires_at`, `revoked_at`, `last_used_at`).
-- [x] **TASK-010** Write the first tenant-isolation test.
+- [] **TASK-010** Write the first tenant-isolation test.
   - Done when: the test demonstrates that one tenant cannot access another tenant's data. A temporary failure before the feature exists is acceptable during test-first development, but the test must pass before the relevant implementation is considered complete.
-- [ ] **TASK-011** Confirm CI runs on push.
+- [x] **TASK-011** Confirm CI runs on push.
   - Done when: GitHub Actions runs the configured checks and reports their results.
 - [x] **TASK-012** Verify the local AI runtime and model configuration.
   - Done when: Ollama can run the selected local LLM, and the selected embedding and reranking models can be loaded locally. Record any hardware limitation and use a suitable smaller fallback model, without making a paid service mandatory.
 - [x] **TASK-013** Align the starter files with the finalized architecture.
   - Done when: `backend/pyproject.toml` uses **arq** (not Celery) and includes an argon2 password-hashing library; `.env.example` contains the settings used by the architecture (`LLM_BASE_URL`, `LLM_MODEL_NAME`, `LLM_API_KEY`, embedding and reranker models, thresholds, limits); the `heimdall-rag` skill and `AGENTS.md` use the `X-API-Key` header and arq; `DECISIONS.md` records arq, `X-API-Key`, and Redis fail-closed (503); and no file still mentions Celery.
+
+- [x] **TASK-032** Cleaner (rag/ingestion/cleaner.py) plus tests. Done when whitespace and control characters are normalized, with no injection filtering.
+- [x] **TASK-033** Parser (parser.py) plus tests. Done when PDF, TXT, and Markdown are read; PDFs are checked by magic bytes; empty, scanned, and encrypted PDFs fail clearly; page numbers are kept.
+- [x] **TASK-034** Chunker (chunker.py) plus tests. Done when chunks follow headings or pages, use settings for size and overlap, and count tokens with the model tokenizer.
+- [x] **TASK-035** Separate test database. Done when heimdall_test exists, TEST_DATABASE_URL is used by tests, and tests never touch the dev database.
+- [x] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
+- [x] **TASK-037** Pipeline and CLI: init-dev and ingest. Done when ingest samples/hostel_rules.pdf (and the other two) works, and the dev tenant is refused outside ENVIRONMENT=development.
+- [x] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
 ## Phase 1: Core RAG API (weeks 1 to 3)
  
 Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
@@ -43,7 +51,7 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
   - Done when: valid credentials work, invalid credentials are rejected, and passwords are never stored in plaintext.
 - [ ] **TASK-021** Implement API-key creation and authentication using the `X-API-Key` header.
   - Done when: keys come from a secure random source, are stored as SHA-256 hashes with a prefix, are shown only once, are compared in constant time, are never logged, and authentication resolves the tenant from the key rather than from caller-supplied tenant IDs.
-- [ ] **TASK-022** Create migrations for `documents` and `chunks`.
+- [x] **TASK-022** Create migrations for `documents` and `chunks`.
   - Done when: the schema supports tenant ownership, vector embeddings (dimension matching the chosen embedding model), the full-text `tsv` column with a GIN index, document and chunk relationships, the embedding model name, and required indexes.
 - [ ] **TASK-023** Implement `POST /v1/documents` with upload validation and background queueing.
   - Done when: PDF, TXT, and Markdown files up to the configured size (default 10 MB) are validated by type (content as well as extension), size, and safe filename handling; accepted uploads receive a trackable status and are queued rather than processed in the request; invalid files get structured errors (413, 422).

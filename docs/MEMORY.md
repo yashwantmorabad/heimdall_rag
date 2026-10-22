@@ -1,69 +1,82 @@
 # Project Memory
-
+ 
 > Records the actual current state of Heimdall. Update this file after every task. Permanent architecture decisions belong in `DECISIONS.md`.
-
+ 
 ## Current Status
-
-**Phase 1 (Core RAG API) — Stage 1 Ingestion: COMPLETE.**
-
-The terminal ingestion tool is fully implemented and tested:
-- `backend/app/rag/ingestion/` — cleaner, parsers (PDF/TXT/MD), chunker, embedder, store, pipeline
-- `backend/app/cli.py` — CLI command `python -m app.cli ingest <file> --tenant-id`
-- 28 unit tests + 2 integration tests passing
-- Idempotent, tenant-isolated, structure-aware chunking, BAAI/bge-small-en-v1.5 embeddings
-
-Docker (PostgreSQL + pgvector, Redis) running. Migrations 0001-0003 applied.
-
+ 
+**Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) is next.**
+ 
+Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
+ 
+`FILE -> parse -> clean -> chunk -> embed -> store (PostgreSQL)`
+ 
+| Step | File | What it does |
+|---|---|---|
+| Parse | `parsers.py` | Reads PDF (PyMuPDF), TXT, Markdown and returns pages with page numbers |
+| Clean | `cleaner.py` | Strips control characters, collapses whitespace, trims ends |
+| Chunk | `chunker.py` | Structure-aware: headings (Markdown), pages (PDF), sliding window (TXT) |
+| Embed | `embedder.py` | `BAAI/bge-small-en-v1.5` (384 dimensions); adds the embedding and the model name to each chunk |
+| Store | `store.py` | Writes chunks to PostgreSQL, scoped by `tenant_id` (see Known Issues for the re-ingestion check) |
+| Orchestrate | `pipeline.py` | Runs the steps in order |
+ 
+Command: `python -m app.cli ingest <file> --tenant-id <id>`
+ 
+Tests: 28 unit tests and 2 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm before relying on these numbers).
+ 
+Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 0003 applied, Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 26 sample questions (21 answerable, 5 not) are in `evals/datasets/sample_questions.jsonl`.
+ 
+Working mode: opencode is used as a read-only tutor. It shows code in the chat and I type it myself. One stage at a time.
+ 
 ## Completed
-
-- Stage 1 ingestion pipeline: parse → clean → chunk → embed → store (7 modules)
-- Terminal CLI ingestion tool with tenant_id parameter
-- Unit tests (28) and integration tests (2) for all ingestion components
-
-**Verification required:** Confirm that every listed document exists and has been reviewed and finalized. Do not mark a document complete merely because an initial draft exists.
-
+ 
+- Setup: Docker, Ollama with `qwen3:4b`, embedding and reranker models, Alembic, migrations 0001 to 0003 (tenants, users, api_keys, documents, chunks)
+- Stage 1 ingestion pipeline (parse, clean, chunk, embed, store) and the CLI `ingest` command, with unit and integration tests
+- Sample documents and a 26-question sample set
 ## Current Task
-
-**TASK-023:** Implement `POST /v1/documents` with upload validation and background queueing.
-
-Stage 1 ingestion (terminal tool) is complete. Next: API endpoint for document upload and arq background worker.
-
+ 
+**TASK-031:** LLM service interface (Ollama implementation plus a fake for tests), the first piece of Stage 2.
+ 
+Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches chunks for the dev tenant only (tenant filter inside the SQL query), asks `qwen3:4b`, and prints the answer with sources and per-step timings (TASK-038). The first real tenant-isolation test (TASK-010) is written in this stage.
+ 
+The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed and will start in a fresh session after the terminal RAG stages.
+ 
 ## Known Issues and Blockers
-
-- No issues have been confirmed yet.
-- Recheck the repository, configuration, and documentation before reporting that there are no known issues.
-- Record newly discovered issues and blockers here, and update them when resolved.
-
+ 
+- **Check re-ingestion:** the pipeline summary says the store uses `ON CONFLICT DO NOTHING` on `(document_id, chunk_index)`. Confirm that re-ingesting an edited file replaces its old chunks (delete and insert in one transaction). If old chunks stay, fix it before relying on ingestion.
+- Structured logging (part of TASK-007) is not implemented yet.
+- CI (TASK-011) is not confirmed: check that `.github/workflows` exists and has run on GitHub.
+- The real tenant-isolation test (TASK-010) is not written yet; it is part of Stage 2.
+- Node.js is not installed or checked (needed in Phase 4).
+- Windows Application Control blocks `.exe` launchers: always use `python -m ...` (pip, pytest, uvicorn, alembic, arq).
+- `make` is not available on Windows; run the commands directly.
+- Harmless: httpx deprecation warning in tests, Hugging Face symlink warning, LF/CRLF Git warnings.
+- First Ollama response takes 25 to 35 seconds while the model loads.
 ## Pending Documentation Updates
-
+ 
 The following finalized architecture decisions must be confirmed in `DECISIONS.md`:
-
+ 
 - Background jobs use **arq with Redis**, not Celery or RQ.
 - Programmatic API authentication uses the **`X-API-Key`** header.
 - If Redis is unavailable, query requests fail closed with **HTTP 503** rather than bypassing rate limits.
-
-Until these decisions are recorded and verified in `DECISIONS.md`, keep them listed as pending documentation updates. Remove each item from this section once it has been recorded and checked.
-
+Also update `TASKS.md`: tick TASK-022 and the Stage 1 tasks, and keep TASK-010 and TASK-011 unticked until their real work is done.
+ 
+Remove each item from this section once it has been recorded and checked.
+ 
 ## Open Questions
-
-- Which local Ollama model will be used for development?
+ 
 - Which free hosting option, if any, will be used for the public demo? Verify its current free-tier limits before choosing.
-- Confirm the embedding configuration against `ARCHITECTURE.md`. The current architecture specifies `BAAI/bge-small-en-v1.5` with 384 dimensions; do not treat this as undecided unless the architecture itself changes.
-
 ## Next Step
-
-1. Implement `POST /v1/documents` API endpoint (TASK-023) — file upload validation, document record creation, queue to arq.
-2. Implement arq worker (TASK-024) — uses the existing ingestion pipeline.
-3. Implement document CRUD endpoints (TASK-025).
-4. Continue Phase 1 tasks in recommended order.
-
+ 
+1. Stage 2 (terminal `ask`): LLM interface (031), retrieval, prompt and answer, the `ask` command (038), tests including the first real tenant-isolation test (010), then try about 6 sample questions.
+2. Stage 3: evaluation on the 26 sample questions (TASKS 029, 030).
+3. Stage 4: "not found" guardrail (027). Stages 5 and 6: keyword search with rank fusion, then the reranker (066).
+4. Later, in a fresh session: API keys (020, 021), upload endpoint and arq worker (023, 024), document endpoints (025).
 ## Memory Update Rules
-
+ 
 - Update the current status, current task, completed work, known issues, and next step after every task.
 - Record only work that has actually been completed and verified.
 - Remove resolved issues and pending items rather than leaving stale information.
 - Check architecture-related statements against `ARCHITECTURE.md` and permanent decisions against `DECISIONS.md`.
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
-
-**Last updated:**  2026-10-22
+**Last updated:** 2026-10-23
