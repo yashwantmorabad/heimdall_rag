@@ -1,5 +1,6 @@
 "Ingestion pipeline: parse->clean->chunk->embed->store"
 
+from app.rag.ingestion.embedder import ChunkDataclass
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -7,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.rag.ingestion.parsers import parse_file,ParsedPage
 from app.rag.ingestion.cleaner import clean_text
-from app.rag.ingestion.chunker import chunk,chunk_file
+from app.rag.ingestion.chunker import chunk_file
 from app.rag.ingestion.embedder import embed_chunks
 from app.rag.ingestion.store import store_chunks
 from app.db.session import AsyncSessionLocal
@@ -42,15 +43,16 @@ async def ingest_file(
 
     # 3. chunk
     file_type=file_path.suffix.lower().lstrip(".")
-    chunks: list[chunk]=chunk_file(
+    chunks: list[ChunkDataclass]=chunk_file(
         cleaned_pages,
         token_counter=lambda t: len(t.split()),
         chunk_size=500,
+        chunk_overlap=75,
         file_type=file_type,
     )
 
     # 4. Embed (loads model, computes embeddings)
-    embed_chunks(chunks)
+    chunks=embed_chunks(chunks)
 
     # 5. Store
     async with AsyncSessionLocal() as session:

@@ -4,13 +4,17 @@ from uuid import UUID
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.rag.ingestion.chunker import Chunk
+from app.rag.ingestion.chunker import Chunk as ChunkDataclass
+from app.db.models.chunk import Chunk as ChunkModel
+from sqlalchemy.dialects.postgresql import insert
+
+
 
 async def store_chunks(
     session: AsyncSession,
     tenant_id: UUID,
     document_id: UUID,
-    chunks: List[Chunk],
+    chunks: List[ChunkDataclass],
 )-> int:
     """
     Insert chukns into the database.
@@ -34,29 +38,28 @@ async def store_chunks(
     inserted=0
     
     for i, chunk in enumerate(chunks):
-        #Use raw SQL for pgvector+ ON CONFLICT
-        #The unique constraint is on(document_id, chunk_index)
-        result=await session.execute(
-            text("""
-                INSERT INTO chunks (tenant_id, document_id, content, chunk_index, page, embedding, embedding_model)
-                VALUES (:tenant_id, :document_id, :content, :chunk_index, :page, :embedding, :embedding_model)
-                ON CONFLICT (document_id, chunk_index) DO NOTHING
-            """),
-        {
-            "tenant_id": str(tenant_id),
-            "document_id": str(document_id),
-            "content": chunk.text,
-            "chunk_index": i,
-            "page": chunk.page_number,
-            "embedding": chunk.embedding,
-            "embedding_model": chunk.embedding_model,
-        },
+        # Use ORM insert with ON CONFLICT DO NOTHING
+        stmt = (
+            insert(ChunkModel)
+            .values(
+                tenant_id=tenant_id,
+                document_id=document_id,
+                content=chunk.text,
+                chunk_index=i,
+                page=chunk.page_number,
+                embedding=chunk.embedding,  # list[float] -> Vector type handles conversion
+                embedding_model=chunk.embedding_model,
+            )
+            .on_conflict_do_nothing(
+                constraint="uq_chunks_document_chunk_index"
+            )
         )
+        result = await session.execute(stmt)
         if result.rowcount > 0:
-            inserted+=1
+            inserted += 1
+
     await session.commit()
     return inserted
-
 
 # Line-by-line explanation
 # Line:	What it does

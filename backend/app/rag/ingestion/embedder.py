@@ -1,7 +1,8 @@
 "Embeddings generation using sentence-transformers"
 
+# from app.db.models import Chunk
+# from app.core.config import Settings
 from app.db.models import Chunk
-from app.core.config import Settings
 from functools import lru_cache
 from typing import List
 
@@ -9,6 +10,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import get_settings
+from app.rag.ingestion.chunker import Chunk as ChunkDataclass
+
 
 #Global model cache- loaded once, reused across calls
 @lru_cache(maxsize=1)
@@ -50,7 +53,7 @@ def embed_texts(texts: List[str])-> List[np.ndarray]:
     #return as list of !d arrays
     return [emb.astype(np.float32) for emb in embeddings]
 
-def embed_chunks(chunks: List["Chunk"])-> List["Chunk"]:
+def embed_chunks(chunks: List["ChunkDataclass"])-> List["ChunkDataclass"]:
     """
     Add embeddings to Chunk objects in place.
 
@@ -65,14 +68,22 @@ def embed_chunks(chunks: List["Chunk"])-> List["Chunk"]:
     
     texts = [c.text for c in chunks]
     embeddings = embed_texts(texts)
+    model_name=get_settings().embedding_model
     
+     # Create NEW chunks with embeddings (can't modify frozen dataclass)
+    result = []
     for chunk, emb in zip(chunks, embeddings):
-        # Store embedding as list[float] for DB (pgvector accepts list)
-        chunk.embedding = emb.tolist()
-        # Store model name for future compatibility checks
-        chunk.embedding_model = get_settings().embedding_model
-        
-    return chunks   
+        new_chunk = ChunkDataclass(
+            text=chunk.text,
+            token_count=chunk.token_count,
+            page_number=chunk.page_number,
+            chunk_index=chunk.chunk_index,
+            embedding=emb.tolist(),
+            embedding_model=model_name,
+        )
+        result.append(new_chunk)
+
+    return result
 
 #Line-by-line explanation
 #@lru_cache(maxsize=1) : Caches the model — first call loads it (~90MB download), subsequent calls return cached instance
