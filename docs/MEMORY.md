@@ -4,24 +4,29 @@
 
 ## Current Status
 
-Planning and initial documentation are in progress. The starter repository contains project documentation, configuration, and project skills. No application features have been implemented yet.
+**Phase 1 (Core RAG API) — Stage 1 Ingestion: COMPLETE.**
 
-Verify this status against the actual repository at the start of each new work session.
+The terminal ingestion tool is fully implemented and tested:
+- `backend/app/rag/ingestion/` — cleaner, parsers (PDF/TXT/MD), chunker, embedder, store, pipeline
+- `backend/app/cli.py` — CLI command `python -m app.cli ingest <file> --tenant-id`
+- 28 unit tests + 2 integration tests passing
+- Idempotent, tenant-isolated, structure-aware chunking, BAAI/bge-small-en-v1.5 embeddings
+
+Docker (PostgreSQL + pgvector, Redis) running. Migrations 0001-0003 applied.
 
 ## Completed
 
-- Project idea, name (`heimdall-rag`), and scope defined.
-- PRD and architecture documentation written.
-- Design, development rules, security requirements, test plan, and task list drafted.
-- Project skill written for OpenCode and Antigravity.
+- Stage 1 ingestion pipeline: parse → clean → chunk → embed → store (7 modules)
+- Terminal CLI ingestion tool with tenant_id parameter
+- Unit tests (28) and integration tests (2) for all ingestion components
 
 **Verification required:** Confirm that every listed document exists and has been reviewed and finalized. Do not mark a document complete merely because an initial draft exists.
 
 ## Current Task
 
-**TASK-001:** Create the GitHub repository and push the starter project.
+**TASK-023:** Implement `POST /v1/documents` with upload validation and background queueing.
 
-**Pending confirmation:** Confirm that TASK-001 is still the correct next task after completing the planned documentation review. Do not begin implementation until the documentation review is complete.
+Stage 1 ingestion (terminal tool) is complete. Next: API endpoint for document upload and arq background worker.
 
 ## Known Issues and Blockers
 
@@ -47,11 +52,10 @@ Until these decisions are recorded and verified in `DECISIONS.md`, keep them lis
 
 ## Next Step
 
-1. Finish reviewing and finalizing the project documentation.
-2. Verify that `DECISIONS.md` records all accepted architecture decisions consistently with `ARCHITECTURE.md` and `SECURITY.md`.
-3. Confirm the actual current task in `TASKS.md`.
-4. Complete Phase 0 tasks (TASK-001 through TASK-011) according to the task list.
-5. Begin Phase 1 only when its prerequisites are satisfied.
+1. Implement `POST /v1/documents` API endpoint (TASK-023) — file upload validation, document record creation, queue to arq.
+2. Implement arq worker (TASK-024) — uses the existing ingestion pipeline.
+3. Implement document CRUD endpoints (TASK-025).
+4. Continue Phase 1 tasks in recommended order.
 
 ## Memory Update Rules
 
@@ -62,4 +66,4 @@ Until these decisions are recorded and verified in `DECISIONS.md`, keep them lis
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
 
-**Last updated:** 2026-10-09
+**Last updated:**  2026-10-22

@@ -8,32 +8,32 @@ Last updated: 2026-10-09
  
 ## Phase 0: Setup (about 3 days)
  
-- [ ] **TASK-001** Create the GitHub repository and push the starter project.
+- [x] **TASK-001** Create the GitHub repository and push the starter project.
   - Done when: the repository contains the starter files, and `.env` or other secrets are not committed.
-- [ ] **TASK-002** Install Docker Desktop, Python 3.11, Node.js LTS, and Git.
+- [x] **TASK-002** Install Docker Desktop, Python 3.11, Node.js LTS, and Git.
   - Done when: each tool's version command runs successfully.
-- [ ] **TASK-003** Copy `.env.example` to `.env` and fill in local development values.
+- [x] **TASK-003** Copy `.env.example` to `.env` and fill in local development values.
   - Done when: required settings are present, `.env` is ignored by Git, and no secrets are committed.
-- [ ] **TASK-004** Run `make up`; confirm PostgreSQL with pgvector and Redis are healthy.
+- [x] **TASK-004** Run `make up`; confirm PostgreSQL with pgvector and Redis are healthy.
   - Done when: both services report healthy and can be reached locally.
-- [ ] **TASK-005** Create the backend virtual environment and install dependencies using `pip install -e "backend[dev]"`.
+- [x] **TASK-005** Create the backend virtual environment and install dependencies using `pip install -e "backend[dev]"`.
   - Done when: installation succeeds inside the intended Python 3.11 environment.
   - Depends on: TASK-013 (dependencies must match the architecture first).
-- [ ] **TASK-006** Run the starter API and tests (`make dev`, `/health`, `/docs`, `make test`).
+- [x] **TASK-006** Run the starter API and tests (`make dev`, `/health`, `/docs`, `make test`).
   - Done when: the health endpoint responds, API docs open, and the existing test suite passes. If the starter is incomplete, record the specific blocker instead of marking the task complete.
-- [ ] **TASK-007** Add or verify `backend/app/core/config.py` (settings loaded from environment variables) and structured logging.
+- [x] **TASK-007** Add or verify `backend/app/core/config.py` (settings loaded from environment variables) and structured logging.
   - Done when: required settings are validated at startup, secrets are not hard-coded, and logs are structured and can include `trace_id` and `tenant_id`.
-- [ ] **TASK-008** Set up Alembic; create the first migration and enable the PostgreSQL `vector` extension.
+- [x] **TASK-008** Set up Alembic; create the first migration and enable the PostgreSQL `vector` extension.
   - Done when: migrations apply successfully to a clean local database.
-- [ ] **TASK-009** Create migrations for `tenants`, `users`, and `api_keys`.
+- [x] **TASK-009** Create migrations for `tenants`, `users`, and `api_keys`.
   - Done when: tables have the required fields, constraints, and tenant-related indexes defined by the architecture (including `key_prefix`, `key_hash`, `scopes`, `expires_at`, `revoked_at`, `last_used_at`).
-- [ ] **TASK-010** Write the first tenant-isolation test.
+- [x] **TASK-010** Write the first tenant-isolation test.
   - Done when: the test demonstrates that one tenant cannot access another tenant's data. A temporary failure before the feature exists is acceptable during test-first development, but the test must pass before the relevant implementation is considered complete.
 - [ ] **TASK-011** Confirm CI runs on push.
   - Done when: GitHub Actions runs the configured checks and reports their results.
-- [ ] **TASK-012** Verify the local AI runtime and model configuration.
+- [x] **TASK-012** Verify the local AI runtime and model configuration.
   - Done when: Ollama can run the selected local LLM, and the selected embedding and reranking models can be loaded locally. Record any hardware limitation and use a suitable smaller fallback model, without making a paid service mandatory.
-- [ ] **TASK-013** Align the starter files with the finalized architecture.
+- [x] **TASK-013** Align the starter files with the finalized architecture.
   - Done when: `backend/pyproject.toml` uses **arq** (not Celery) and includes an argon2 password-hashing library; `.env.example` contains the settings used by the architecture (`LLM_BASE_URL`, `LLM_MODEL_NAME`, `LLM_API_KEY`, embedding and reranker models, thresholds, limits); the `heimdall-rag` skill and `AGENTS.md` use the `X-API-Key` header and arq; `DECISIONS.md` records arq, `X-API-Key`, and Redis fail-closed (503); and no file still mentions Celery.
 ## Phase 1: Core RAG API (weeks 1 to 3)
  
