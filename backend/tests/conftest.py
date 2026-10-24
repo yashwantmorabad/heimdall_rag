@@ -1,5 +1,13 @@
 """Pytest fixtures for integration tests (test database only)."""
 
+import sys
+from pathlib import Path
+
+# Ensure backend directory is on sys.path for imports like "app.core.config"
+BACKEND_DIR = Path(__file__).parent.parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(BACKEND_DIR))
+
 import pytest
 import pytest_asyncio
 from sqlalchemy import text, delete
