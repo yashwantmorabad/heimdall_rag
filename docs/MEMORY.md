@@ -34,7 +34,7 @@ Working mode: opencode is used as a read-only tutor. It shows code in the chat a
 - Sample documents and a 26-question sample set
 ## Current Task
 
-TASK-031: LLM service interface (first piece of Stage 2, the terminal ask command).
+TASK-031: LLM service interface (llm.py) created with OllamaLLM and FakeLLM.
  
 Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches chunks for the dev tenant only (tenant filter inside the SQL query), asks `qwen3:4b`, and prints the answer with sources and per-step timings (TASK-038). The first real tenant-isolation test (TASK-010) is written in this stage.
  

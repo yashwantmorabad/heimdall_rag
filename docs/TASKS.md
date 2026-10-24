@@ -61,7 +61,7 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
   - Done when: a queued document is processed end to end; statuses move through `queued`, `processing`, and `ready` or `failed` with a safe error description; retries never create duplicate chunks; and the original file is removed or kept according to the storage setting. Use arq, not Celery or RQ.
 - [ ] **TASK-025** Implement document endpoints: `GET /v1/documents`, `GET /v1/documents/{id}`, and `DELETE /v1/documents/{id}`.
   - Done when: users can list, inspect, and delete only their own tenant's documents; deleting a document deletes its chunks; other tenants' documents return 404.
-- [ ] **TASK-031** Create the LLM service interface with an Ollama implementation and a fake implementation for tests.
+- [x] **TASK-031** Create the LLM service interface with an Ollama implementation and a fake implementation for tests.
   - Done when: the pipeline calls the LLM only through the interface (`generate()` plus configuration); provider, model, and base URL come from settings; and tests can run without a real model.
 - [ ] **TASK-026** Implement `POST /v1/query` with tenant-filtered vector retrieval and cited answers.
   - Done when: the endpoint returns an answer and source references (document, chunk, page), the prompt places retrieved text in delimited context blocks and treats it as untrusted, and all retrieval queries are tenant-scoped inside the database query. Until rate limits and quotas exist (Phase 2), keep this endpoint limited to local development and testing.
