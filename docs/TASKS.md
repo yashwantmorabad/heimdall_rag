@@ -21,28 +21,30 @@ Last updated: 2026-10-09
   - Depends on: TASK-013 (dependencies must match the architecture first).
 - [x] **TASK-006** Run the starter API and tests (`make dev`, `/health`, `/docs`, `make test`).
   - Done when: the health endpoint responds, API docs open, and the existing test suite passes. If the starter is incomplete, record the specific blocker instead of marking the task complete.
-- [x] **TASK-007** Add or verify `backend/app/core/config.py` (settings loaded from environment variables) and structured logging.
-  - Done when: required settings are validated at startup, secrets are not hard-coded, and logs are structured and can include `trace_id` and `tenant_id`.
+- [x] **TASK-007** Add or verify `backend/app/core/config.py` (settings loaded from environment variables).
+  - Done when: required settings are validated at startup and secrets are not hard-coded.
+- [x] **TASK-007b** Add structured logging.
+  - Done when: logs are structured and can include `trace_id` and `tenant_id`.
 - [x] **TASK-008** Set up Alembic; create the first migration and enable the PostgreSQL `vector` extension.
   - Done when: migrations apply successfully to a clean local database.
 - [x] **TASK-009** Create migrations for `tenants`, `users`, and `api_keys`.
   - Done when: tables have the required fields, constraints, and tenant-related indexes defined by the architecture (including `key_prefix`, `key_hash`, `scopes`, `expires_at`, `revoked_at`, `last_used_at`).
-- [] **TASK-010** Write the first tenant-isolation test.
+- [ ] **TASK-010** Write the first tenant-isolation test.
   - Done when: the test demonstrates that one tenant cannot access another tenant's data. A temporary failure before the feature exists is acceptable during test-first development, but the test must pass before the relevant implementation is considered complete.
-- [x] **TASK-011** Confirm CI runs on push.
+- [ ] **TASK-011** Confirm CI runs on push.
   - Done when: GitHub Actions runs the configured checks and reports their results.
 - [x] **TASK-012** Verify the local AI runtime and model configuration.
   - Done when: Ollama can run the selected local LLM, and the selected embedding and reranking models can be loaded locally. Record any hardware limitation and use a suitable smaller fallback model, without making a paid service mandatory.
-- [x] **TASK-013** Align the starter files with the finalized architecture.
+- [ ] **TASK-013** Align the starter files with the finalized architecture.
   - Done when: `backend/pyproject.toml` uses **arq** (not Celery) and includes an argon2 password-hashing library; `.env.example` contains the settings used by the architecture (`LLM_BASE_URL`, `LLM_MODEL_NAME`, `LLM_API_KEY`, embedding and reranker models, thresholds, limits); the `heimdall-rag` skill and `AGENTS.md` use the `X-API-Key` header and arq; `DECISIONS.md` records arq, `X-API-Key`, and Redis fail-closed (503); and no file still mentions Celery.
 
 - [x] **TASK-032** Cleaner (rag/ingestion/cleaner.py) plus tests. Done when whitespace and control characters are normalized, with no injection filtering.
 - [x] **TASK-033** Parser (parser.py) plus tests. Done when PDF, TXT, and Markdown are read; PDFs are checked by magic bytes; empty, scanned, and encrypted PDFs fail clearly; page numbers are kept.
 - [x] **TASK-034** Chunker (chunker.py) plus tests. Done when chunks follow headings or pages, use settings for size and overlap, and count tokens with the model tokenizer.
 - [x] **TASK-035** Separate test database. Done when heimdall_test exists, TEST_DATABASE_URL is used by tests, and tests never touch the dev database.
-- [x] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
+- [ ] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
 - [x] **TASK-037** Pipeline and CLI: init-dev and ingest. Done when ingest samples/hostel_rules.pdf (and the other two) works, and the dev tenant is refused outside ENVIRONMENT=development.
-- [x] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
+- [ ] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
 ## Phase 1: Core RAG API (weeks 1 to 3)
  
 Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.

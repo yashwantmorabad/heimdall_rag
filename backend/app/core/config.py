@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     monthly_query_quota: int = 1000
     trace_retention_days: int = 30
 
+    # Test database (optional, for integration tests)
+    test_database_url: str | None = None
+
 
 @lru_cache
 def get_settings() -> Settings:

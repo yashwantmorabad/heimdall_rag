@@ -138,6 +138,19 @@ This document records permanent architecture and technology decisions for Heimda
 - Do not treat passing software tests as proof that RAG quality has improved or remained stable.
 
 ---
+## ADR-011: Fail Closed on Redis Unavailability
+
+**Status:** Accepted
+
+**Decision:** When Redis is unavailable, query requests return HTTP 503 rather than bypassing rate limits and quotas.
+
+**Reason:** Rate limiting and quota enforcement protect the local LLM from overload. Bypassing them when Redis is down would allow unlimited requests to reach the model, risking resource exhaustion. Failing closed is the safer default.
+
+**Consequences:**
+- All rate limit and quota checks must be enforced before expensive RAG work.
+- If Redis is down, the query endpoint returns 503 with a clear error.
+- This behavior must be tested explicitly (see TASK-042, TASK-045).
+- The choice can be revisited in a future ADR if operational experience shows it is too strict.
 
 ## Changing an Accepted Decision
 

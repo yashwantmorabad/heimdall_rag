@@ -1,3 +1,4 @@
+from sqlalchemy import UniqueConstraint
 import uuid
 from datetime import datetime
 
@@ -17,6 +18,7 @@ class Document(Base):
             "status IN ('queued', 'processing', 'ready', 'failed')",
             name="ck_documents_status",
         ),
+        UniqueConstraint("tenant_id", "filename", name="uq_documents_tenant_filename"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
