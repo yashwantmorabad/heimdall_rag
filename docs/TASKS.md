@@ -42,7 +42,7 @@ Last updated: 2026-10-09
 - [x] **TASK-033** Parser (parser.py) plus tests. Done when PDF, TXT, and Markdown are read; PDFs are checked by magic bytes; empty, scanned, and encrypted PDFs fail clearly; page numbers are kept.
 - [x] **TASK-034** Chunker (chunker.py) plus tests. Done when chunks follow headings or pages, use settings for size and overlap, and count tokens with the model tokenizer.
 - [x] **TASK-035** Separate test database. Done when heimdall_test exists, TEST_DATABASE_URL is used by tests, and tests never touch the dev database.
-- [ ] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
+- [x] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
 - [x] **TASK-037** Pipeline and CLI: init-dev and ingest. Done when ingest samples/hostel_rules.pdf (and the other two) works, and the dev tenant is refused outside ENVIRONMENT=development.
 - [ ] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
 ## Phase 1: Core RAG API (weeks 1 to 3)

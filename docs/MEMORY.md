@@ -3,28 +3,28 @@
 > Records the actual current state of Heimdall. Update this file after every task. Permanent architecture decisions belong in `DECISIONS.md`.
  
 ## Current Status
- 
+
 **Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) is next.**
- 
+
 Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
- 
+
 `FILE -> parse -> clean -> chunk -> embed -> store (PostgreSQL)`
- 
+
 | Step | File | What it does |
 |---|---|---|
 | Parse | `parsers.py` | Reads PDF (PyMuPDF), TXT, Markdown and returns pages with page numbers |
 | Clean | `cleaner.py` | Strips control characters, collapses whitespace, trims ends |
 | Chunk | `chunker.py` | Structure-aware: headings (Markdown), pages (PDF), sliding window (TXT) |
 | Embed | `embedder.py` | `BAAI/bge-small-en-v1.5` (384 dimensions); adds the embedding and the model name to each chunk |
-| Store | `store.py` | Writes chunks to PostgreSQL, scoped by `tenant_id` (see Known Issues for the re-ingestion check) |
-| Orchestrate | `pipeline.py` | Runs the steps in order |
- 
+| Store | `pipeline.py` (TXN 2) | Deletes old chunks, inserts new ones in one transaction, scoped by `tenant_id` |
+| Orchestrate | `pipeline.py` | Runs the steps in order with 3 transactions: create doc → replace chunks → update status |
+
 Command: `python -m app.cli ingest <file> --tenant-id <id>`
- 
-Tests: 28 unit tests and 2 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm before relying on these numbers).
- 
-Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 0003 applied, Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 26 sample questions (21 answerable, 5 not) are in `evals/datasets/sample_questions.jsonl`.
- 
+
+Tests: 38 unit tests and 3 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm before relying on these numbers).
+
+Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 1c7b70d692aa applied (unique constraint on documents.tenant_id + filename), Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 26 sample questions (21 answerable, 5 not) are in `evals/datasets/sample_questions.jsonl`.
+
 Working mode: opencode is used as a read-only tutor. It shows code in the chat and I type it myself. One stage at a time.
  
 ## Completed
@@ -41,8 +41,7 @@ Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches
 The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed and will start in a fresh session after the terminal RAG stages.
  
 ## Known Issues and Blockers
- 
-- **Check re-ingestion:** the pipeline summary says the store uses `ON CONFLICT DO NOTHING` on `(document_id, chunk_index)`. Confirm that re-ingesting an edited file replaces its old chunks (delete and insert in one transaction). If old chunks stay, fix it before relying on ingestion.
+
 - Structured logging (part of TASK-007) is not implemented yet.
 - CI (TASK-011) is not confirmed: check that `.github/workflows` exists and has run on GitHub.
 - The real tenant-isolation test (TASK-010) is not written yet; it is part of Stage 2.
@@ -79,4 +78,4 @@ Remove each item from this section once it has been recorded and checked.
 - Check architecture-related statements against `ARCHITECTURE.md` and permanent decisions against `DECISIONS.md`.
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
-**Last updated:** 2026-10-23
+**Last updated:** 2026-10-24
