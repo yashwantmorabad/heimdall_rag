@@ -6,6 +6,7 @@ from pathlib import Path
 from uuid import UUID
 
 import pytest
+import pytest_asyncio
 from sqlalchemy import select, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -22,7 +23,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker
 TENANT_ID = UUID("00000000-0000-0000-0000-000000000001")
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def db_session():
     """Provide a clean test DB session for each test."""
     async with AsyncTestSessionLocal() as session:
