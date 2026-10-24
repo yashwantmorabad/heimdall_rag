@@ -33,8 +33,8 @@ Working mode: opencode is used as a read-only tutor. It shows code in the chat a
 - Stage 1 ingestion pipeline (parse, clean, chunk, embed, store) and the CLI `ingest` command, with unit and integration tests
 - Sample documents and a 26-question sample set
 ## Current Task
- 
-**TASK-031:** LLM service interface (Ollama implementation plus a fake for tests), the first piece of Stage 2.
+
+TASK-031: LLM service interface (first piece of Stage 2, the terminal ask command).
  
 Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches chunks for the dev tenant only (tenant filter inside the SQL query), asks `qwen3:4b`, and prints the answer with sources and per-step timings (TASK-038). The first real tenant-isolation test (TASK-010) is written in this stage.
  
@@ -50,6 +50,8 @@ The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed an
 - `make` is not available on Windows; run the commands directly.
 - Harmless: httpx deprecation warning in tests, Hugging Face symlink warning, LF/CRLF Git warnings.
 - First Ollama response takes 25 to 35 seconds while the model loads.
+
+Test-database guard is too loose (accepts names that don't end in _test). Fix later; not a blocker.
 ## Pending Documentation Updates
  
 The following finalized architecture decisions must be confirmed in `DECISIONS.md`:
