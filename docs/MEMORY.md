@@ -32,10 +32,14 @@ Working mode: opencode is used as a read-only tutor. It shows code in the chat a
 - Setup: Docker, Ollama with `qwen3:4b`, embedding and reranker models, Alembic, migrations 0001 to 0003 (tenants, users, api_keys, documents, chunks)
 - Stage 1 ingestion pipeline (parse, clean, chunk, embed, store) and the CLI `ingest` command, with unit and integration tests
 - Sample documents and a 26-question sample set
+- Stage 2 Piece 1: LLM service interface (OllamaLLM + FakeLLM) in backend/app/rag/generation/llm.py
+- Stage 2 Piece 2: Tenant-scoped vector retrieval in backend/app/rag/retrieval/vector_search.py
 ## Current Task
 
 TASK-031: LLM service interface (llm.py) created with OllamaLLM and FakeLLM.
- 
+- Retrieval: vector_search() in backend/app/rag/retrieval/vector_search.py with tenant filter in SQL.
+- Stage 2 Piece 3: Prompt builder (build_prompt, generate_answer) in backend/app/rag/generation/prompt.py with numbered source blocks, citation extraction, token budget.
+
 Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches chunks for the dev tenant only (tenant filter inside the SQL query), asks `qwen3:4b`, and prints the answer with sources and per-step timings (TASK-038). The first real tenant-isolation test (TASK-010) is written in this stage.
  
 The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed and will start in a fresh session after the terminal RAG stages.
@@ -80,4 +84,4 @@ Remove each item from this section once it has been recorded and checked.
 - Check architecture-related statements against `ARCHITECTURE.md` and permanent decisions against `DECISIONS.md`.
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
-**Last updated:** 2026-10-24
+**Last updated:** 2026-10-25

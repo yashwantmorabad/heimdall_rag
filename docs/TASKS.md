@@ -44,7 +44,7 @@ Last updated: 2026-10-09
 - [x] **TASK-035** Separate test database. Done when heimdall_test exists, TEST_DATABASE_URL is used by tests, and tests never touch the dev database.
 - [x] **TASK-036** Embedder and storage plus integration tests. Done when chunks are stored with the model name; re-ingesting a document replaces its chunks in one transaction; status changes are saved separately.
 - [x] **TASK-037** Pipeline and CLI: init-dev and ingest. Done when ingest samples/hostel_rules.pdf (and the other two) works, and the dev tenant is refused outside ENVIRONMENT=development.
-- [ ] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
+- [x] **TASK-038** CLI ask. Done when a question gets a cited answer from qwen3:4b with per-step timings (depends on TASK-031).  
 ## Phase 1: Core RAG API (weeks 1 to 3)
  
 Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
@@ -63,7 +63,7 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
   - Done when: users can list, inspect, and delete only their own tenant's documents; deleting a document deletes its chunks; other tenants' documents return 404.
 - [x] **TASK-031** Create the LLM service interface with an Ollama implementation and a fake implementation for tests.
   - Done when: the pipeline calls the LLM only through the interface (`generate()` plus configuration); provider, model, and base URL come from settings; and tests can run without a real model.
-- [ ] **TASK-026** Implement `POST /v1/query` with tenant-filtered vector retrieval and cited answers.
+- [x] **TASK-026** Implement `POST /v1/query` with tenant-filtered vector retrieval and cited answers.
   - Done when: the endpoint returns an answer and source references (document, chunk, page), the prompt places retrieved text in delimited context blocks and treats it as untrusted, and all retrieval queries are tenant-scoped inside the database query. Until rate limits and quotas exist (Phase 2), keep this endpoint limited to local development and testing.
 - [ ] **TASK-029** Create the first 30 evaluation questions in `evals/datasets/`.
   - Done when: questions include answerable and unanswerable cases, expected answers and source evidence are documented, and the dataset can be reused repeatably.
