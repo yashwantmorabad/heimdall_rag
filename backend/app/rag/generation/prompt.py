@@ -1,6 +1,5 @@
 "Prompt building for RAG generation."
 
-from app.core.config import Settings
 from typing import List
 from app.rag.retrieval.vector_search import RetrievedChunk
 from app.core.config import get_settings

@@ -31,12 +31,13 @@ class Settings(BaseSettings):
     llm_base_url: str = "http://localhost:11434"
     llm_model_name: str = "qwen3:4b"
     llm_api_key: str = ""
+    embedding_base_url:str=""
     llm_think: bool = False
     llm_num_ctx: int = 4096
 
     # Embeddings and reranker
-    embedding_model: str = "BAAI/bge-small-en-v1.5"
-    embedding_dim: int = 384
+    embedding_model: str = "nomic-embed-text"
+    embedding_dim: int = 768
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Retrieval (starting values; tune with the evaluation set)
