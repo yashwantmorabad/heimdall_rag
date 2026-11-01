@@ -36,7 +36,7 @@ Heimdall is a ₹0-budget project. Everything required for development is free.
 
 AI models
 • LLM:a local open-sourced model through Ollama by default.
-• Embeddings:Sentence Transformers, running locally.
+• Embeddings: Ollama (nomic-embed-text) 
 • Rernker:a cross-Encoder, running locally.
 • The LLM provider is configurable through settings(LLM_BASE_URL,
   LLM_API_KEY, LLM_MODEL_NAME,LLM_API_KEY) using an OPENAI-compatible interface, so another provider can be added later without redesiging the pipeline. 
@@ -53,7 +53,7 @@ AI models
 | Keyword search|PostgreSQL full-text search(tsvector +GIN index)|Keyword search |
 | Cache/ queue | Redis |
 | Background workers | arq |
-| Embeddings | Sentence Transformers |
+| Embeddings | Ollama (nomic-embed-text) |
 | Reranker | Cross-Encoder |
 | LLM | Local open-sourced model through Ollama |
 | Frontend | Next.js + TypeScript |
@@ -221,7 +221,7 @@ Each chunk stores: 'tenant_id', `document_id`, content, position (and page where
  
 - Chunk size and overlap are settings. Defaults are starting points, tuned only with evaluation results.
 - Chunking is structure-aware where possible (headings for Markdown, pages for PDF).
-- Embeddings are generated locally. Example model: `BAAI/bge-small-en-v1.5` (384 dimensions).
+- Example model: `nomic-embed-text` (768 dimensions).
 - The pgvector column dimension **must match** the embedding model.
 - The embedding model name is stored with every chunk, so a model change can be detected and the corpus re-indexed. Do not mix vectors from different models in one search.
 

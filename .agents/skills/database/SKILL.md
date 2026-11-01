@@ -30,7 +30,7 @@ Tenant isolation rules: see `heimdall-development`.
 Document statuses: `queued`, `processing`, `ready`, `failed`.
 
 ## Chunks and vectors
-- The `embedding` column dimension **must match** the embedding model (384 for `BAAI/bge-small-en-v1.5`).
+- The `embedding` column dimension **must match** the embedding model (768 for `nomic-embed-text`).
 - Store `embedding_model` with every chunk. Never mix vectors from different models in one search.
 - `tsv` is a `tsvector` column with a GIN index for keyword search.
 - Deleting a document deletes its chunks (use a foreign key with cascade delete).

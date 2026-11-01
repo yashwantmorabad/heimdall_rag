@@ -15,7 +15,7 @@ Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
 | Parse | `parsers.py` | Reads PDF (PyMuPDF), TXT, Markdown and returns pages with page numbers |
 | Clean | `cleaner.py` | Strips control characters, collapses whitespace, trims ends |
 | Chunk | `chunker.py` | Structure-aware: headings (Markdown), pages (PDF), sliding window (TXT) |
-| Embed | `embedder.py` | `BAAI/bge-small-en-v1.5` (384 dimensions); adds the embedding and the model name to each chunk |
+| Embed | `embedder.py` | `nomic-embed-text` (768 dimensions); adds the embedding and the model name to each chunk |
 | Store | `pipeline.py` (TXN 2) | Deletes old chunks, inserts new ones in one transaction, scoped by `tenant_id` |
 | Orchestrate | `pipeline.py` | Runs the steps in order with 3 transactions: create doc → replace chunks → update status |
 

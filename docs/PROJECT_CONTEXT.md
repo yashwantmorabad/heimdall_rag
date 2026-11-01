@@ -29,7 +29,7 @@ Last updated: 2026-10-09
 | Retrieval | Hybrid (vector + keyword), merged with Reciprocal Rank Fusion, then cross-encoder reranking |
 | Queue and cache | Redis; background jobs use **arq** (not Celery, not RQ) |
 | LLM | Local model through **Ollama**; provider configurable (`LLM_BASE_URL`, `LLM_MODEL_NAME`, `LLM_API_KEY`) |
-| Embeddings | Sentence Transformers, `BAAI/bge-small-en-v1.5` (384 dimensions) |
+| Embeddings | Ollama, `nomic-embed-text` (768 dimensions) |
 | API authentication | **`X-API-Key`** header; keys stored as SHA-256 hashes, shown once |
 | Dashboard authentication | Email and password (argon2id) with an HTTP-only session cookie |
 | Tenant isolation | `tenant_id` from authenticated identity only; filter inside SQL; foreign resources return 404 |

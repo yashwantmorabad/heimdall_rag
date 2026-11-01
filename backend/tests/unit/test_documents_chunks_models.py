@@ -15,7 +15,7 @@ def test_document_status_is_restricted():
 
 def test_chunk_embedding_dimension_matches_the_model():
     column = Base.metadata.tables["chunks"].c.embedding
-    assert column.type.dim == EMBEDDING_DIM == 384
+    assert column.type.dim == EMBEDDING_DIM == 768
     assert not column.nullable
 
 

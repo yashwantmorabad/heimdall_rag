@@ -62,8 +62,8 @@ async def test_ingest_txt_file(db_session):
         assert len(chunks) == stored
         assert all(c.tenant_id == TENANT_ID for c in chunks)
         assert all(c.embedding is not None for c in chunks)
-        assert all(len(c.embedding) == 384 for c in chunks)
-        assert all(c.embedding_model == "BAAI/bge-small-en-v1.5" for c in chunks)
+        assert all(len(c.embedding) == 768 for c in chunks)
+        assert all(c.embedding_model == "nomic-embed-text" for c in chunks)
 
     finally:
         txt_path.unlink(missing_ok=True)

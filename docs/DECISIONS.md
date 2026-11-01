@@ -152,6 +152,21 @@ This document records permanent architecture and technology decisions for Heimda
 - This behavior must be tested explicitly (see TASK-042, TASK-045).
 - The choice can be revisited in a future ADR if operational experience shows it is too strict.
 
+## ADR-012: Embeddings via Ollama (nomic-embed-text)
+
+**Status:** Accepted
+
+**Decision:** Generate embeddings through Ollama's `/api/embed` endpoint using the `nomic-embed-text` model (768 dimensions) instead of sentence-transformers running locally with PyTorch.
+
+**Reason:** Windows Application Control blocks `torch_python.dll`, preventing sentence-transformers from loading. Ollama runs as a separate process and avoids this restriction.
+
+**Consequences:**
+- Embedding dimension changes from 384 → 768 (requires migration and re-indexing).
+- Prefixes required: `search_document: ` for chunks, `search_query: ` for questions (asymmetric retrieval).
+- ADR-009 still applies: embedding model name stored with each chunk.
+- First request has higher latency (model loads into memory); timeout set to 120s.
+- ollama must be running (`ollama serve`) and model pulled (`ollama pull nomic-embed-text`).
+
 ## Changing an Accepted Decision
 
 When a significant architecture decision needs to change:

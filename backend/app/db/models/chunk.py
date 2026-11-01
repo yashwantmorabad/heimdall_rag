@@ -10,7 +10,7 @@ from app.db.base import Base
 
 # Must match the embedding model (BAAI/bge-small-en-v1.5 = 384 dimensions).
 # Changing the model or dimension needs a NEW migration and a full re-index.
-EMBEDDING_DIM = 384
+EMBEDDING_DIM = 768
 
 
 class Chunk(Base):

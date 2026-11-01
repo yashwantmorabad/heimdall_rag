@@ -18,7 +18,7 @@ Query:     retrieve (vector + keyword) -> fuse -> rerank -> guardrail -> LLM -> 
 - Chunk size and overlap are settings. Defaults are starting points, tuned only with evaluation results.
 - Chunk structure-aware where possible (headings for Markdown, pages for PDF).
 - Each chunk stores tenant, document, content, position (and page), embedding, embedding model name, and a full-text column.
-- Embeddings run locally (Sentence Transformers). Default model `BAAI/bge-small-en-v1.5`, 384 dimensions. The model is configurable.
+- Embeddings run locally via Ollama. Default model `nomic-embed-text`, 768 dimensions. The model is configurable.
 
 ## Retrieval
 - **Vector search** and **keyword search** (PostgreSQL full-text) both filter by `tenant_id` inside the query.

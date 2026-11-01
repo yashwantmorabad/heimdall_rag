@@ -1,113 +1,105 @@
-#Test for embedder
-
-from transformers.models.distilbert.modeling_distilbert import Embeddings
-from torch import embedding
-import numpy as np 
+import numpy as np
 import pytest
 
 from app.rag.ingestion.chunker import Chunk
-from app.rag.ingestion.embedder import embed_texts,embed_chunks
+from app.rag.ingestion.embedder import(
+    embed_documents,
+    embed_queries,
+    embed_chunks,
+    fake_embed_documents,
+    fake_embed_queries,
+    fake_embed_chunks,
+)
 
-#Fake embedder for fast, deterministic tests 
+#Fake Embedder tests
 
-FAKE_DIM=384
+def test_fake_embed_documents_returns_correct_shape():
+    texts = ["Hello world", "Another text"]
+    embeddings = fake_embed_documents(texts)
 
-def fake_embed_texts(texts: list[str])-> list[np.ndarray]:
-    "Deterministic fake embedder: hash text-> fixed vector."
-    embeddings=[]
-    for text in texts:
-        #constrain hash to valid numpy seed range [0, 2**32-1]
-        hash_val=abs(hash(text)) % (2**32)# hash value should be in range of [0,2**32-1]
-        np.random.seed(hash_val)
-        vec=np.random.randn(FAKE_DIM).astype(np.float32)
-        #Normalize
-        vec=vec/np.linalg.norm(vec)
-        embeddings.append(vec)
-    return embeddings
+    assert len(embeddings) == 2
+    assert all(e.shape==(768,) for e in embeddings)
+    assert all(e.dtype==np.float32 for e in embeddings)
 
-def fake_embed_chunks(chunks: list[Chunk])-> list[Chunk]:
-    "Fake version of embed_chunks for testing."
-    texts=[c.text for c in chunks]
-    embeddings=fake_embed_texts(texts)
-    result=[]
-    for chunk,emb in zip(chunks,embeddings):
-        #create a new chunk with embedding
-        new_chunk=Chunk(
-            text=chunk.text,
-            token_count=chunk.token_count,
-            page_number=chunk.page_number,
-            chunk_index=chunk.chunk_index,
-            embedding=emb.tolist(),
-            embedding_model="fake model"
-        )
-        result.append(new_chunk)
-    return result
+def test_fake_embed_queries_returns_correct_shape():
+    texts=["test query"]
+    embeddings=fake_embed_queries(texts)
+
+    assert len(embeddings)==1
+    assert embeddings[0].shape==(768,)
+    assert embeddings[0].dtype==np.float32
+
+def test_fake_embed_deterministic():
+    "same input + same prefix = same output."
+    e1=fake_embed_documents(["test"])
+    e2=fake_embed_documents(["test"])
+    assert np.allclose(e1[0],e2[0])
+
+def test_fake_embed_different_inputs_different_outputs():
+    e = fake_embed_documents(["text one", "text two"])
+    assert not np.allclose(e[0], e[1])
 
 
-# Line-by-line explanation
-# Line(s):	What it does
-# fake_embed_texts : Deterministic fake: hashes text, seeds numpy random, generates normalized vector
-# np.random.seed(hash_val) : Same text → same vector every run
-# vec / np.linalg.norm(vec) : Normalize to unit length (like real model with normalize_embeddings=True)
-# # fake_embed_chunks : Mirrors embed_chunks but uses fake embedde:
-
-# Key Python features for beginners
-# 1. Deterministic fakes — Tests must be repeatable. Hash-based seeding ensures same input → same output every run.
-# 2. np.random.randn(dim) — Samples from standard normal distribution (mean=0, std=1).
-# 3. astype(np.float32) — Matches real model output dtype.
-
-def test_embed_texts_returns_correct_shape():
-    "embed_texts returns list of vectors with correct dimension."
-    texts=["Hello world", "Another text"]
-    embeddings=fake_embed_texts(texts)
-
-    assert len(embeddings)==2
-    assert all(e.shape==(FAKE_DIM,) for e in embeddings)
-    assert all(e.dtype == np.float32 for e in embeddings)
-
-def test_embed_texts_deterministic():
-    "Same input always produce same output."
-    embeddings1=fake_embed_texts(["test"])
-    embeddings2=fake_embed_texts(["test"])
-
-    assert np.allclose(embeddings1[0],embeddings2[0])
-
-def test_embed_texts_different_inputs_different_outputs():
-    "Different texts produce different embeddings."
-    embeddings=fake_embed_texts(["text one","text two"])
-    
-    assert not np.allclose(embeddings[0],embeddings[1])
-
-def test_embed_chunks_attaches_embeddings():
-    "embedded chunks add embedding and model name to each chunks."
-    chunks=[
-        Chunk(text="First chunk", token_count=10,page_number=1,chunk_index=0),
-        Chunk(text="Second chunk", token_count=12,page_number=1,chunk_index=1),
+def test_fake_embed_chunks_attaches_embeddings():
+    chunks = [
+        Chunk(text="First chunk", token_count=10, page_number=1, chunk_index=0),
+        Chunk(text="Second chunk", token_count=12, page_number=1, chunk_index=1),
     ]
 
-    result=fake_embed_chunks(chunks)
+    result = fake_embed_chunks(chunks)
 
-    assert len(result)==2
+    assert len(result) == 2
     for chunk in result:
         assert chunk.embedding is not None
-        assert len(chunk.embedding)==FAKE_DIM
-        assert chunk.embedding_model=="fake model"
-
-def test_embed_chunks_empty_list():
-    "Empty input returns empty list"
-    assert fake_embed_chunks([])==[]
-    assert fake_embed_texts([])==[]
-
-#Line by line explanation
-#test_embed_texts_returns_correct_shape: Verifies the output: list of vectors,each shape(384,) dtype float32
-#test_embed_texts_deterministic: same input -> same output
-# test_embed_texts_different_inputs_different_outputs: different inputs -> different vectors
-# test_embed_chunks_attaches_embeddings: chunks get embedding list and embedding_model string.
-# test_embed_chunks_empty_list: empty input -> empty output
-
-#Key python features
-# 1. np.allclose(a,b) - compares arrays with tolearnace
-# 2. assert all(... for e in embeddings) - checks every elements in list satisfies condition
-# 3. Test isolation - each test creates it's own data, no shared state.
+        assert len(chunk.embedding) == 768
+        assert chunk.embedding_model == "fake-nomic-embed-text"
 
 
+def test_fake_embed_chunks_empty_list():
+    assert fake_embed_chunks([]) == []
+    assert fake_embed_documents([]) == []
+    assert fake_embed_queries([]) == []
+
+
+def test_fake_prefixes_are_different():
+    """Verify search_document: and search_query: produce different vectors for same text."""
+    doc_emb = fake_embed_documents(["identical text"])
+    query_emb = fake_embed_queries(["identical text"])
+    assert not np.allclose(doc_emb[0], query_emb[0])
+
+
+# ---- Real Ollama embedder tests (require Ollama running) ----
+
+@pytest.mark.integration
+def test_ollama_embed_documents_dimension():
+    """Integration test: real Ollama call returns 768-dim vectors."""
+    embeddings = embed_documents(["hello world"])
+    assert len(embeddings) == 1
+    assert len(embeddings[0]) == 768
+    assert embeddings[0].dtype == np.float32
+
+
+@pytest.mark.integration
+def test_ollama_embed_queries_dimension():
+    embeddings = embed_queries(["test query"])
+    assert len(embeddings) == 1
+    assert len(embeddings[0]) == 768
+
+
+@pytest.mark.integration
+def test_ollama_prefixes_produce_different_vectors():
+    """Integration test: prefixes create different vectors for same text."""
+    doc_emb = embed_documents(["same text"])
+    query_emb = embed_queries(["same text"])
+    assert not np.allclose(doc_emb[0], query_emb[0])
+
+
+@pytest.mark.integration
+def test_ollama_embed_chunks():
+    chunks = [
+        Chunk(text="Test chunk", token_count=5, page_number=1, chunk_index=0),
+    ]
+    result = embed_chunks(chunks)
+    assert len(result) == 1
+    assert len(result[0].embedding) == 768
+    assert result[0].embedding_model == "nomic-embed-text"  

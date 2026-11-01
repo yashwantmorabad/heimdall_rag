@@ -22,7 +22,7 @@ If anything here conflicts with `docs/ARCHITECTURE.md`, follow the architecture 
 
 ## Fixed decisions
 - Python 3.11, FastAPI, PostgreSQL 16 + pgvector, Redis, **arq** (never Celery or RQ), Next.js + TypeScript + Tailwind, Alembic.
-- Local LLM through Ollama; provider configurable. Embeddings: Sentence Transformers (`BAAI/bge-small-en-v1.5`, 384 dimensions). Local cross-encoder reranker.
+- Local LLM through Ollama; provider configurable. Embeddings: Ollama (`nomic-embed-text`, 768 dimensions). Local cross-encoder reranker.
 - API auth: **`X-API-Key`** header. Dashboard auth: session cookie.
 
 ## Folder map
