@@ -1,5 +1,6 @@
 """Vector retrieval with tenant-scoped cosine search."""
 
+import asyncio
 from uuid import UUID
 from typing import List
 from dataclasses import dataclass
@@ -41,8 +42,8 @@ async def vector_search(
     Returns:
         List[RetrievedChunk]: list of retrieved chunks
     """
-    # 1. Embed the question with 'search_query: ' prefix
-    question_embeddings = embed_queries([question])
+    # 1. Embed the question with 'search_query: ' prefix (non-blocking)
+    question_embeddings = await asyncio.to_thread(embed_queries, [question])
     question_embedding = question_embeddings[0]
 
     # 2. Cosine search with tenant filter inside the SQL
@@ -67,7 +68,7 @@ async def vector_search(
     return [
         RetrievedChunk(
             document_id=row.document_id,
-            filename=row.filename,  # FIX: was row.page (bug)
+            filename=row.filename,
             page=row.page,
             chunk_index=row.chunk_index,
             context=row.content,

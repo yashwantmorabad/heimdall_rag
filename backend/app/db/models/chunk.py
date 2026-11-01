@@ -8,7 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
 
-# Must match the embedding model (BAAI/bge-small-en-v1.5 = 384 dimensions).
+# Must match the embedding model.
 # Changing the model or dimension needs a NEW migration and a full re-index.
 EMBEDDING_DIM = 768
 

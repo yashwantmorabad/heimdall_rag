@@ -1,8 +1,5 @@
 "Embeddings generation using ollama."
 
-from transformers.models.distilbert.modeling_distilbert import Embeddings
-from alembic.util import exc
-from time import time
 import httpx
 import numpy as np 
 from typing import List
