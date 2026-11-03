@@ -1,23 +1,85 @@
-"CLI for heimdall-rag ingestion (dev tool)"
+"CLI for heimdall-rag: ingest documents, ask questions (dev tool)."
 
-from sqlalchemy import true
 import sys
+import time
+import asyncio
 from pathlib import Path
 from uuid import UUID
 
 import typer
 
 from app.rag.ingestion.pipeline import ingest_file
+from app.rag.retrieval.vector_search import search_chunks
+from app.rag.generation.llm import OllamaLLM
+from app.rag.generation.prompt import generate_answer
 
-#Defualt dec tenant(fixed UUID for local development)
+#default dev tenant
 DEFAULT_TENANT_ID=UUID("00000000-0000-0000-0000-000000000001")
-
-app= typer.Typer(help="Heimdall ingestion CLI")
+app=typer.Typer(help="Heimdall RAG CLI: ingest documents, ask questions.")
 
 @app.command()
+def ask(
+    question:str=typer.Argument(...,help="Question to ask"),
+    tenant_id:UUID=typer.Option(DEFAULT_TENANT_ID,"--tenant-id",help="Tenant UUID"),
+    top_k:int=typer.Option(20,"--top-k",help="Number of chunks to retrieve"),
+    ):
+    """
+    Ask a question and get an answer with sources and per-step timings.
+
+    Example:
+        python -m app.cli ask "What is the library late fee?"
+    """
+    typer.echo(f"Question:{question}")
+    typer.echo(f"Tenant:{tenant_id}")
+
+    llm=OllamaLLM()
+    timings={}
+
+    try:
+        #step 1: Embed+vector search
+        t0=time.perf_counter()
+        chunks=asyncio.run(search_chunks(tenant_id,question,top_k))
+        timings["search_ms"]=int((time.perf_counter()-t0)*1000)
+        typer.echo(f"Retrieved {len(chunks)} chunks in {timings['search_ms']}ms")
+
+        if not chunks:
+            typer.echo("No relevant chunks found for the question.")
+            return
+
+        #step 2: Build prompt+call llm
+        t1=time.perf_counter()
+        result=asyncio.run(generate_answer(question,chunks,llm))
+        timings["llm_ms"]=int((time.perf_counter()-t1)*1000)
+
+        #output
+        typer.echo(f"Answer:\n{result.answer}")
+
+        if result.sources:
+            typer.echo("\n--- Sources ---")
+            for i, src in enumerate(result.sources, 1):
+                page = src.page if src.page else "N/A"
+                typer.echo(f"  [{i}] {src.filename} (page {page}) — distance: {src.distance:.4f}")
+
+        typer.echo(f"\nTimings (ms): {timings}")
+        typer.echo(f"Search: {timings['search_ms']}ms,") 
+        typer.echo(f"LLM: {timings['llm_ms']}ms")
+        typer.echo(f"Total: {timings['search_ms']+timings['llm_ms']}ms")
+
+    except RuntimeError as e:
+        if "Cannot reach Ollama" in str(e):
+            typer.echo(f"\nError: {e}", err=True)
+            typer.echo("Start Ollama with: ollama serve", err=True)
+        else:
+            typer.echo(f"\nError: {e}", err=True)
+        sys.exit(1)
+
+    except Exception as e:
+        typer.echo(f"\nUnexpected error: {e}", err=True)
+        sys.exit(1)
+@app.command()
 def ingest(
-    file_path: Path=typer.Argument(..., exists=True,readable=True,help="File to ingest"),
-    tenant_id: UUID=typer.Option(DEFAULT_TENANT_ID,"--tenant-id",help="Tenant UUID"),
+    file_path: Path = typer.Argument(..., exists=True, readable=True, help="File to ingest"),
+    tenant_id: UUID = typer.Option(DEFAULT_TENANT_ID, "--tenant-id", help="Tenant UUID"),
 ):
     """
     Ingest a document: parse, clean, chunk, embed, store.
@@ -25,35 +87,16 @@ def ingest(
     Example:
     python -m app.cli ingest ./sample.pdf --tenant-id 00000000-0000-0000-0000-000000000001
     """
-    typer.echo(f"Ingesting {file_path} for tenant{tenant_id}...")
+    typer.echo(f"Ingesting {file_path} for tenant {tenant_id}...")
 
     try:
-        #Run async pipeline
         import asyncio
-        stored = asyncio.run(ingest_file(file_path,tenant_id))
-        typer.echo(f"Done. Chunks stored:{stored}")
+        stored = asyncio.run(ingest_file(file_path, tenant_id))
+        typer.echo(f"Done. Chunks stored: {stored}")
     except Exception as e:
-        typer.echo(f"Error: {e}",err=True)
+        typer.echo(f"Error: {e}", err=True)
         sys.exit(1)
+
 
 if __name__ == "__main__":
     app()
-
-# Line-by-line explanation
-# Line(s):	What it does
-# import typer: 	Modern CLI library using type hints
-# DEFAULT_TENANT_ID: 	Fixed UUID for local dev (no auth needed)
-# app = typer.Typer(): 	Creates CLI app
-# @app.command(): 	Decorator: makes ingest a subcommand
-# file_path: Path = typer.Argument(..., exists=True, readable=True)	: Required positional arg. Typer validates file exists & is readable.
-# tenant_id: UUID = typer.Option(DEFAULT_TENANT_ID, "--tenant-id")	: Optional flag --tenant-id, defaults to dev tenant
-# asyncio.run(ingest_file(...))	: Runs async function from sync context (CLI is sync)
-# typer.echo(...)	: Prints to stdout (or stderr with err=True)
-# sys.exit(1)	: Exits with error code on failure
-
-# Key Python features for beginners
-# 1. typer.Argument / typer.Option — Declarative CLI: type hints + metadata = automatic parsing, validation, help text.
-# 2. Path with exists=True, readable=True — Typer validates the file before your code runs.
-# 3. UUID type hint — Typer parses string → UUID object automatically.
-# 4. asyncio.run() — Bridge from sync (CLI) to async (pipeline). Creates event loop, runs coroutine, closes loop.
-# 5. if __name__ == "__main__": app() — Allows python -m app.cli entry point.
