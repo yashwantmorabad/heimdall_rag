@@ -53,7 +53,7 @@ def build_prompt(question:str, chunks:List[RetrievedChunk])-> tuple[str,List[Ret
     for i,chunk in enumerate(chunks,1):
         if i > 4:  # hard cap: max 4 chunks to stay within 4096 tokens
             break
-        block=f"[Source{i}]\nDocument:{chunk.filename}\nPage:{chunk.page or 'N/A'}\nContent: {chunk.content}\n[/Source {i}]\n"
+        block=f"[Source{i}]\nDocument:{chunk.filename}\nPage:{chunk.page or 'N/A'}\nContent: {chunk.context}\n[/Source {i}]\n"
         block_tokens=count_tokens(block)
         if used_tokens + block_tokens > budget:
             break
@@ -61,10 +61,10 @@ def build_prompt(question:str, chunks:List[RetrievedChunk])-> tuple[str,List[Ret
         used_tokens+=block_tokens
 
     source_blocks="\n".join(
-        f"[Source{i}]\nDocument:{c.filename}\nPage:{c.page or 'N/A'}\nContent:{c.content}\n[/Source{i}]"
+        f"[Source{i}]\nDocument:{c.filename}\nPage:{c.page or 'N/A'}\nContent:{c.context}\n[/Source{i}]"
         for i,c in enumerate(used_chunks,1)    
     )
-    prompt=f"{system}\n\nSource:\n{source_blocks}\n\nQuestion:{question}\n\nAnswer:"
+    prompt=f"{system}\n\nSources:\n{source_blocks}\n\nQuestion:{question}\n\nAnswer:"
     return prompt,used_chunks
 
 #Line-by-Line:
