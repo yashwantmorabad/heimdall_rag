@@ -1,10 +1,12 @@
 # Development and testing dependencies
 -r requirements.txt
- 
+  
 pytest
 pytest-asyncio
+alembic
+psycopg2
 ruff                    # linting (make lint)
 typer
- 
+  
 # Add later (Phase 5):
 # locust                # load testing
