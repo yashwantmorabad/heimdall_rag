@@ -33,12 +33,22 @@ jobs:
           --health-timeout=5s
           --health-retries=5
 
+      ollama:
+        image: ollama/ollama:latest
+        ports: ["11434:11434"]
+        options: >-
+          --health-cmd="curl -f http://localhost:11434/api/tags"
+          --health-interval=10s
+          --health-timeout=10s
+          --health-retries=10
+
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/heimdall
       TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/heimdall_test
       REDIS_URL: redis://localhost:6379/0
       SECRET_KEY: test-secret-key-for-ci-only
       ENVIRONMENT: test
+      LLM_BASE_URL: http://localhost:11434
 
     steps:
       - name: Checkout
@@ -58,7 +68,7 @@ jobs:
             ${{ runner.os }}-pip-
 
       - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client curl
 
       - name: Install dependencies
         run: |
@@ -70,6 +80,20 @@ jobs:
           cd backend
           python -c "import psycopg2; conn = psycopg2.connect(host='localhost', user='postgres', password='postgres', database='heimdall'); conn.autocommit = True; cur = conn.cursor(); cur.execute('CREATE DATABASE heimdall_test;'); cur.close(); conn.close(); print('Test database created')"
 
+      - name: Pull Ollama embedding model
+        run: |
+          # Wait for Ollama to be ready
+          for i in {1..30}; do
+            if curl -f http://localhost:11434/api/tags >/dev/null 2>&1; then
+              echo "Ollama is ready"
+              break
+            fi
+            echo "Waiting for Ollama... ($i/30)"
+            sleep 2
+          done
+          # Pull the embedding model
+          curl -X POST http://localhost:11434/api/pull -d '{"name": "nomic-embed-text"}'
+
       - name: Run migrations on test database
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/heimdall_test
@@ -80,6 +104,7 @@ jobs:
       - name: Run tests
         env:
           TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/heimdall_test
+          LLM_BASE_URL: http://localhost:11434
         run: |
           cd backend
           python -m pytest tests/unit -q --ignore=tests/unit/rag/test_embedder.py
