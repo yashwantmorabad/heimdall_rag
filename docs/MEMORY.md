@@ -4,7 +4,7 @@
  
 ## Current Status
 
-**Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) is next.**
+**Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) COMPLETE.**
 
 Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
 
@@ -21,34 +21,46 @@ Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
 
 Command: `python -m app.cli ingest <file> --tenant-id <id>`
 
-Tests: 38 unit tests and 3 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm before relying on these numbers).
+Stage 2 (`ask`) is a four-step pipeline:
+
+`QUESTION -> embed (search_query:) -> vector search (tenant_id filter) -> prompt + LLM -> answer + citations`
+
+| Step | File | What it does |
+|---|---|---|
+| Embed | `embedder.py` | `embed_queries()` with `search_query:` prefix via Ollama `nomic-embed-text` |
+| Search | `vector_search.py` | Cosine distance `<=>` with `WHERE tenant_id = ...` in SQL |
+| Prompt | `prompt.py` | Numbered `[Source N]` blocks, 4-chunk cap, citation extraction |
+| LLM | `llm.py` | `OllamaLLM` (qwen3:4b, 120s timeout, think=false) or `FakeLLM` for tests |
+
+Command: `python -m app.cli ask "<question>" --tenant-id <id>`
+
+Tests: 50 unit tests and 7 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm).
 
 Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 1c7b70d692aa applied (unique constraint on documents.tenant_id + filename), Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 26 sample questions (21 answerable, 5 not) are in `evals/datasets/sample_questions.jsonl`.
 
 Working mode: opencode is used as a read-only tutor. It shows code in the chat and I type it myself. One stage at a time.
  
 ## Completed
- 
+
 - Setup: Docker, Ollama with `qwen3:4b`, embedding and reranker models, Alembic, migrations 0001 to 0003 (tenants, users, api_keys, documents, chunks)
 - Stage 1 ingestion pipeline (parse, clean, chunk, embed, store) and the CLI `ingest` command, with unit and integration tests
 - Sample documents and a 26-question sample set
 - Stage 2 Piece 1: LLM service interface (OllamaLLM + FakeLLM) in backend/app/rag/generation/llm.py
 - Stage 2 Piece 2: Tenant-scoped vector retrieval in backend/app/rag/retrieval/vector_search.py
+- Stage 2 Piece 3: Prompt builder (build_prompt, generate_answer) in backend/app/rag/generation/prompt.py with numbered source blocks, citation extraction, 4-chunk token budget
+- Stage 2 Piece 4: CLI `ask` command in backend/app/cli.py with two subcommands (ingest, ask), per-step timings
+- Stage 2 Piece 5: Tests — tenant isolation (tests/isolation), prompt builder unit tests (tests/unit/rag/test_prompt.py), full ask flow integration (tests/integration/test_ask_flow.py)
+- Stage 2 Piece 6: Manual try-out — 6 questions from sample_questions.jsonl (4 answered, 2 correctly abstained)
 ## Current Task
 
-TASK-031: LLM service interface (llm.py) created with OllamaLLM and FakeLLM.
-- Retrieval: vector_search() in backend/app/rag/retrieval/vector_search.py with tenant filter in SQL.
-- Stage 2 Piece 3: Prompt builder (build_prompt, generate_answer) in backend/app/rag/generation/prompt.py with numbered source blocks, citation extraction, token budget.
+Stage 2 COMPLETE. Next: Stage 3 (Evaluation Runner).
 
-Stage 2 goal: `python -m app.cli ask "<question>"` embeds the question, searches chunks for the dev tenant only (tenant filter inside the SQL query), asks `qwen3:4b`, and prints the answer with sources and per-step timings (TASK-038). The first real tenant-isolation test (TASK-010) is written in this stage.
- 
 The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed and will start in a fresh session after the terminal RAG stages.
  
 ## Known Issues and Blockers
 
 - Structured logging (part of TASK-007) is not implemented yet.
 - CI (TASK-011) is not confirmed: check that `.github/workflows` exists and has run on GitHub.
-- The real tenant-isolation test (TASK-010) is not written yet; it is part of Stage 2.
 - Node.js is not installed or checked (needed in Phase 4).
 - Windows Application Control blocks `.exe` launchers: always use `python -m ...` (pip, pytest, uvicorn, alembic, arq).
 - `make` is not available on Windows; run the commands directly.
@@ -71,10 +83,10 @@ Remove each item from this section once it has been recorded and checked.
  
 - Which free hosting option, if any, will be used for the public demo? Verify its current free-tier limits before choosing.
 ## Next Step
- 
-1. Stage 2 (terminal `ask`): LLM interface (031), retrieval, prompt and answer, the `ask` command (038), tests including the first real tenant-isolation test (010), then try about 6 sample questions.
-2. Stage 3: evaluation on the 26 sample questions (TASKS 029, 030).
-3. Stage 4: "not found" guardrail (027). Stages 5 and 6: keyword search with rank fusion, then the reranker (066).
+
+1. Stage 3: evaluation on the 26 sample questions (TASKS 029, 030) — implement `evals/run_eval.py` and `make eval`.
+2. Stage 4: "not found" guardrail (027) — evidence threshold calibrated from eval results.
+3. Stage 5: hybrid retrieval (keyword search + vector search + RRF + reranker) (066).
 4. Later, in a fresh session: API keys (020, 021), upload endpoint and arq worker (023, 024), document endpoints (025).
 ## Memory Update Rules
  
@@ -84,4 +96,4 @@ Remove each item from this section once it has been recorded and checked.
 - Check architecture-related statements against `ARCHITECTURE.md` and permanent decisions against `DECISIONS.md`.
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
-**Last updated:** 2026-10-25
+**Last updated:** 2026-11-05

@@ -4,7 +4,7 @@ Work one task at a time: **read, understand, plan, implement, test, review, fix,
  
 Use `PRD.md` for what Heimdall must do and `ARCHITECTURE.md` for how it must work. If a task conflicts with the finalized architecture, follow the architecture and record any approved architecture decision in `DECISIONS.md`.
  
-Last updated: 2026-10-09
+Last updated: 2026-11-05
  
 ## Phase 0: Setup (about 3 days)
  
@@ -29,7 +29,7 @@ Last updated: 2026-10-09
   - Done when: migrations apply successfully to a clean local database.
 - [x] **TASK-009** Create migrations for `tenants`, `users`, and `api_keys`.
   - Done when: tables have the required fields, constraints, and tenant-related indexes defined by the architecture (including `key_prefix`, `key_hash`, `scopes`, `expires_at`, `revoked_at`, `last_used_at`).
-- [ ] **TASK-010** Write the first tenant-isolation test.
+- [x] **TASK-010** Write the first tenant-isolation test.
   - Done when: the test demonstrates that one tenant cannot access another tenant's data. A temporary failure before the feature exists is acceptable during test-first development, but the test must pass before the relevant implementation is considered complete.
 - [ ] **TASK-011** Confirm CI runs on push.
   - Done when: GitHub Actions runs the configured checks and reports their results.
