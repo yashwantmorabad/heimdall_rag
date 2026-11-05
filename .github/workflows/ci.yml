@@ -38,9 +38,10 @@ jobs:
         ports: ["11434:11434"]
         options: >-
           --health-cmd="curl -f http://localhost:11434/api/tags"
-          --health-interval=10s
+          --health-interval=15s
           --health-timeout=10s
-          --health-retries=10
+          --health-retries=20
+          --memory=4g
 
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/heimdall
@@ -83,13 +84,13 @@ jobs:
       - name: Pull Ollama embedding model
         run: |
           # Wait for Ollama to be ready
-          for i in {1..30}; do
+          for i in {1..60}; do
             if curl -f http://localhost:11434/api/tags >/dev/null 2>&1; then
               echo "Ollama is ready"
               break
             fi
-            echo "Waiting for Ollama... ($i/30)"
-            sleep 2
+            echo "Waiting for Ollama... ($i/60)"
+            sleep 5
           done
           # Pull the embedding model
           curl -X POST http://localhost:11434/api/pull -d '{"name": "nomic-embed-text"}'
