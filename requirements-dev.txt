@@ -4,7 +4,7 @@
 pytest
 pytest-asyncio
 alembic
-psycopg2
+psycopg2-binary
 ruff                    # linting (make lint)
 typer
   
