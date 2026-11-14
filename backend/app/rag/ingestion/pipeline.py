@@ -1,6 +1,7 @@
 """Ingestion pipeline: parse->clean->chunk->embed->store"""
 
 from app.rag.ingestion.embedder import ChunkDataclass
+from app.core.config import get_settings
 from pathlib import Path
 from uuid import UUID, uuid4
 
@@ -48,12 +49,13 @@ async def ingest_file(
     ]
 
     # 3. Chunk
+    settings=get_settings()
     file_type = file_path.suffix.lower().lstrip(".")
     chunks: list[ChunkDataclass] = chunk_file(
         cleaned_pages,
         token_counter=lambda t: len(t.split()),
-        chunk_size=500,
-        chunk_overlap=75,
+        chunk_size=settings.chunk_size_tokens,
+        chunk_overlap=settings.chunk_overlap_tokens,
         file_type=file_type,
     )
 

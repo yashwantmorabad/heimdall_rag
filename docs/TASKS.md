@@ -65,9 +65,9 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
   - Done when: the pipeline calls the LLM only through the interface (`generate()` plus configuration); provider, model, and base URL come from settings; and tests can run without a real model.
 - [x] **TASK-026** Implement `POST /v1/query` with tenant-filtered vector retrieval and cited answers.
   - Done when: the endpoint returns an answer and source references (document, chunk, page), the prompt places retrieved text in delimited context blocks and treats it as untrusted, and all retrieval queries are tenant-scoped inside the database query. Until rate limits and quotas exist (Phase 2), keep this endpoint limited to local development and testing.
-- [ ] **TASK-029** Create the first 30 evaluation questions in `evals/datasets/`.
+- [x] **TASK-029** Create the first 30 evaluation questions in `evals/datasets/`.
   - Done when: questions include answerable and unanswerable cases, expected answers and source evidence are documented, and the dataset can be reused repeatably.
-- [ ] **TASK-030** Implement the baseline evaluation runner (`evals/run_eval.py`) and make `make eval` work.
+- [x] **TASK-030** Implement the baseline evaluation runner (`evals/run_eval.py`) and make `make eval` work.
   - Done when: `make eval` runs the dataset against the current configuration and saves a report in `evals/reports/` with at least Recall@K and abstention accuracy, plus the configuration used.
 - [ ] **TASK-027** Implement the evidence threshold and "not found in your documents" guardrail.
   - Done when: weak evidence causes abstention without calling the LLM, the abstention is a normal successful response clearly marked as not found, and the threshold is chosen using `make eval` results rather than arbitrarily. The threshold must be recalibrated when the reranker is added in TASK-066.

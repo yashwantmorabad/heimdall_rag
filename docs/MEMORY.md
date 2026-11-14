@@ -4,7 +4,7 @@
  
 ## Current Status
 
-**Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) COMPLETE.**
+**Terminal RAG plan: Stage 1 (Ingestion) COMPLETE. Stage 2 (`ask`) COMPLETE. Stage 3 (Evaluation) COMPLETE.**
 
 Stage 1 is a five-step assembly line in `backend/app/rag/ingestion/`:
 
@@ -34,26 +34,39 @@ Stage 2 (`ask`) is a four-step pipeline:
 
 Command: `python -m app.cli ask "<question>" --tenant-id <id>`
 
-Tests: 50 unit tests and 7 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm).
+Stage 3 (Evaluation) runner: `evals/run_eval.py`
 
-Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 1c7b70d692aa applied (unique constraint on documents.tenant_id + filename), Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 26 sample questions (21 answerable, 5 not) are in `evals/datasets/sample_questions.jsonl`.
+Commands:
+- `python -m evals.run_eval --retrieval-only` — fast, no LLM
+- `python -m evals.run_eval --full-run` — with LLM (qwen3:4b)
+- `python -m evals.run_eval --retrieval-only --fake` — no DB/Ollama needed
+
+Metrics: Recall@K (K=1,3,5), Strict Recall@K, Doc/Page Recall@K, distance stats (min/median/max per group), answer correctness (key_facts check), manual review flagging.
+
+Reports saved to `evals/reports/eval_YYYYMMDD_HHMMSS.json`.
+
+Tests: 50 unit tests and 7 integration tests passing (re-run `python -m pytest -q` from `backend` to confirm). Eval unit tests: 7 passing.
+
+Environment is set up: Docker (PostgreSQL + pgvector, Redis, ports bound to localhost only), Alembic migrations 0001 to 1c7b70d692aa applied (unique constraint on documents.tenant_id + filename), Ollama running `qwen3:4b` (about 3.2 GB, 100% GPU, thinking off, context 4096), embedding and reranker models cached on `E:\ai\hf-cache`. Sample documents are in `samples/` and 30 sample questions (21 answerable, 9 not) are in `evals/datasets/sample_questions.jsonl`.
 
 Working mode: opencode is used as a read-only tutor. It shows code in the chat and I type it myself. One stage at a time.
- 
+
 ## Completed
 
 - Setup: Docker, Ollama with `qwen3:4b`, embedding and reranker models, Alembic, migrations 0001 to 0003 (tenants, users, api_keys, documents, chunks)
 - Stage 1 ingestion pipeline (parse, clean, chunk, embed, store) and the CLI `ingest` command, with unit and integration tests
-- Sample documents and a 26-question sample set
+- Sample documents and a 30-question sample set (21 answerable, 9 unanswerable) with key_facts
 - Stage 2 Piece 1: LLM service interface (OllamaLLM + FakeLLM) in backend/app/rag/generation/llm.py
 - Stage 2 Piece 2: Tenant-scoped vector retrieval in backend/app/rag/retrieval/vector_search.py
 - Stage 2 Piece 3: Prompt builder (build_prompt, generate_answer) in backend/app/rag/generation/prompt.py with numbered source blocks, citation extraction, 4-chunk token budget
 - Stage 2 Piece 4: CLI `ask` command in backend/app/cli.py with two subcommands (ingest, ask), per-step timings
 - Stage 2 Piece 5: Tests — tenant isolation (tests/isolation), prompt builder unit tests (tests/unit/rag/test_prompt.py), full ask flow integration (tests/integration/test_ask_flow.py)
 - Stage 2 Piece 6: Manual try-out — 6 questions from sample_questions.jsonl (4 answered, 2 correctly abstained)
+- Stage 3: Evaluation runner `evals/run_eval.py` with retrieval-only and full-run modes, fake mode for testing, report generation in `evals/reports/`, key_facts-based answer correctness checking, manual review flagging, per_question_details sorted by distance
+- TASK-029 (30 evaluation questions) and TASK-030 (evaluation runner) COMPLETE
 ## Current Task
 
-Stage 2 COMPLETE. Next: Stage 3 (Evaluation Runner).
+Stage 3 COMPLETE. Next: Stage 4 (not-found guardrail, TASK-027) — evidence threshold calibrated from eval results.
 
 The API upload flow (TASKS 020, 021, 023, 024, 025) is deliberately postponed and will start in a fresh session after the terminal RAG stages.
  
@@ -84,10 +97,9 @@ Remove each item from this section once it has been recorded and checked.
 - Which free hosting option, if any, will be used for the public demo? Verify its current free-tier limits before choosing.
 ## Next Step
 
-1. Stage 3: evaluation on the 26 sample questions (TASKS 029, 030) — implement `evals/run_eval.py` and `make eval`.
-2. Stage 4: "not found" guardrail (027) — evidence threshold calibrated from eval results.
-3. Stage 5: hybrid retrieval (keyword search + vector search + RRF + reranker) (066).
-4. Later, in a fresh session: API keys (020, 021), upload endpoint and arq worker (023, 024), document endpoints (025).
+1. Stage 4: "not found" guardrail (TASK-027) — evidence threshold calibrated from eval results.
+2. Stage 5: hybrid retrieval (keyword search + vector search + RRF + reranker) (TASK-066).
+3. Later, in a fresh session: API keys (TASKS 020, 021), upload endpoint and arq worker (TASKS 023, 024), document endpoints (TASK-025).
 ## Memory Update Rules
  
 - Update the current status, current task, completed work, known issues, and next step after every task.
@@ -96,4 +108,4 @@ Remove each item from this section once it has been recorded and checked.
 - Check architecture-related statements against `ARCHITECTURE.md` and permanent decisions against `DECISIONS.md`.
 - Do not duplicate the full task list or permanent architecture decisions here.
 - Update the last-updated date whenever this file changes.
-**Last updated:** 2026-11-05
+**Last updated:** 2026-11-14

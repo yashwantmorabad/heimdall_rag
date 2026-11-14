@@ -1,0 +1,6 @@
+{
+  "extraPaths": ["backend"],
+  "reportMissingImports": false,
+  "reportUnusedImport": false,
+  "typeCheckingMode": "basic"
+}
