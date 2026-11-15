@@ -12,6 +12,7 @@ from app.rag.ingestion.pipeline import ingest_file
 from app.rag.retrieval.vector_search import search_chunks
 from app.rag.generation.llm import OllamaLLM
 from app.rag.generation.prompt import generate_answer
+from app.core.config import get_settings
 
 #default dev tenant
 DEFAULT_TENANT_ID=UUID("00000000-0000-0000-0000-000000000001")
@@ -44,6 +45,22 @@ def ask(
 
         if not chunks:
             typer.echo("No relevant chunks found for the question.")
+            return
+
+        #step 1.5 Guardrail: check top-1 distance against threshold
+        settings=get_settings()
+        top1_distance = chunks[0].distance
+        if top1_distance > settings.evidence_threshold:
+            # Refusal: normal successful response, clearly marked
+            refusal_answer = "I couldn't find enough information."
+            typer.echo(f"Answer:\n{refusal_answer}")
+            typer.echo(f"\n--- Guardrail Refusal ---")
+            typer.echo(f"Top-1 distance: {top1_distance:.4f} > threshold: {settings.evidence_threshold}")
+            typer.echo(f"Closest source: {chunks[0].filename} (page {chunks[0].page or 'N/A'}) — distance: {top1_distance:.4f}")
+            typer.echo(f"\nTimings (ms): {timings}")
+            typer.echo(f"Search: {timings['search_ms']}ms")
+            typer.echo(f"LLM: 0ms (skipped)")
+            typer.echo(f"Total: {timings['search_ms']}ms")
             return
 
         #step 2: Build prompt+call llm

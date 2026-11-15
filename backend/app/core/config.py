@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     retrieval_top_k: int = 20
     rerank_top_k: int = 5
     similarity_threshold: float = 0.30
+    evidence_threshold: float = 0.42  # guardrail: refuse if top-1 distance > this (calibrated via eval)
 
     # Documents
     storage_path: str = "./storage"
