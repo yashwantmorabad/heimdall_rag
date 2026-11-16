@@ -2,6 +2,7 @@
 
 import sys
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Ensure backend directory is on sys.path for imports like "app.core.config"
 BACKEND_DIR = Path(__file__).parent.parent
@@ -19,6 +20,26 @@ from app.db.models.chunk import Chunk as ChunkModel
 from app.db.models.document import Document
 from app.db.models.tenant import Tenant
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Guard: validate TEST_DATABASE_URL BEFORE any engine is created
+# ──────────────────────────────────────────────────────────────────────────────
+def validate_test_database_url(url: str|None)-> None:
+    """
+    Ensure the test database URL points to a database whose name ends with '_test'.
+    Raises RuntimeError with a clear message if not.
+    """
+    if not url:
+        raise RuntimeError("TEST_DATABASE_URL not set.")
+    # Extract database name from postgresql://user:pass@host:port/dbname
+    parsed = urlparse(url)
+    db_name = parsed.path.lstrip("/")
+    if not db_name:
+        raise RuntimeError("TEST_DATABASE_URL has no database name.")
+    if not db_name.endswith("_test"):
+        raise RuntimeError(f"Refusing to run tests on non-test database: {db_name}.")
+
+settings = get_settings()
+validate_test_database_url(settings.test_database_url)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Test engine with NullPool (no connection pooling → no event-loop affinity)
@@ -36,22 +57,6 @@ def _make_test_engine():
 
 _test_engine = _make_test_engine()
 AsyncTestSessionLocal = async_sessionmaker(_test_engine, expire_on_commit=False)
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Guard: abort the whole run if we're not on a *_test database
-# ──────────────────────────────────────────────────────────────────────────────
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def guard_test_database():
-    """Run once at session start. Exit if active DB isn't a test database."""
-    engine = _make_test_engine()
-    async with engine.connect() as conn:
-        result = await conn.execute(text("SELECT current_database()"))
-        db_name = result.scalar()
-    await engine.dispose()
-
-    if not db_name.endswith("_test"):
-        pytest.exit(f"❌ Refusing to run tests on non-test database: {db_name}")
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -74,4 +79,4 @@ async def db_session() -> AsyncSession:
 # ──────────────────────────────────────────────────────────────────────────────
 # Backward-compat export (if any test imports AsyncTestSessionLocal directly)
 # ──────────────────────────────────────────────────────────────────────────────
-__all__ = ["AsyncTestSessionLocal", "db_session", "guard_test_database"]
+__all__ = ["AsyncTestSessionLocal", "db_session"]

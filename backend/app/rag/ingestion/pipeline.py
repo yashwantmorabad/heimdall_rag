@@ -4,6 +4,7 @@ from app.rag.ingestion.embedder import ChunkDataclass
 from app.core.config import get_settings
 from pathlib import Path
 from uuid import UUID, uuid4
+import asyncio
 
 from sqlalchemy import delete, insert, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
@@ -22,6 +23,7 @@ async def ingest_file(
     file_path: Path,
     tenant_id: UUID,
     document_id: UUID | None = None,
+    oringinal_filename:str|None = None,
     session_factory: async_sessionmaker[AsyncSession] | None = None,
 ) -> int:
     """
@@ -60,7 +62,7 @@ async def ingest_file(
     )
 
     # 4. Embed (loads model, computes embeddings)
-    chunks = embed_chunks(chunks)
+    chunks = await asyncio.to_thread(embed_chunks, chunks)
 
     if not chunks:
         return 0
@@ -72,7 +74,7 @@ async def ingest_file(
             result = await session.execute(
                 select(Document.id).where(
                     Document.tenant_id == tenant_id,
-                    Document.filename == file_path.name,
+                    Document.filename == (oringinal_filename or file_path.name),
                 )
             )
             existing = result.scalar_one_or_none()
@@ -90,7 +92,7 @@ async def ingest_file(
                     Document(
                         id=document_id,
                         tenant_id=tenant_id,
-                        filename=file_path.name,
+                        filename=file_path.name or oringinal_filename,
                         status="processing",
                     )
                 )
