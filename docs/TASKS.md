@@ -31,7 +31,7 @@ Last updated: 2026-11-05
   - Done when: tables have the required fields, constraints, and tenant-related indexes defined by the architecture (including `key_prefix`, `key_hash`, `scopes`, `expires_at`, `revoked_at`, `last_used_at`).
 - [x] **TASK-010** Write the first tenant-isolation test.
   - Done when: the test demonstrates that one tenant cannot access another tenant's data. A temporary failure before the feature exists is acceptable during test-first development, but the test must pass before the relevant implementation is considered complete.
-- [ ] **TASK-011** Confirm CI runs on push.
+- [x] **TASK-011** Confirm CI runs on push.
   - Done when: GitHub Actions runs the configured checks and reports their results.
 - [x] **TASK-012** Verify the local AI runtime and model configuration.
   - Done when: Ollama can run the selected local LLM, and the selected embedding and reranking models can be loaded locally. Record any hardware limitation and use a suitable smaller fallback model, without making a paid service mandatory.
@@ -51,7 +51,7 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
  
 - [ ] **TASK-020** Implement signup and login endpoints with password hashing (argon2id) and secure session cookies (HTTP-only, Secure, SameSite).
   - Done when: valid credentials work, invalid credentials are rejected, and passwords are never stored in plaintext.
-- [ ] **TASK-021** Implement API-key creation and authentication using the `X-API-Key` header.
+- [x] **TASK-021** Implement API-key creation and authentication using the `X-API-Key` header.
   - Done when: keys come from a secure random source, are stored as SHA-256 hashes with a prefix, are shown only once, are compared in constant time, are never logged, and authentication resolves the tenant from the key rather than from caller-supplied tenant IDs.
 - [x] **TASK-022** Create migrations for `documents` and `chunks`.
   - Done when: the schema supports tenant ownership, vector embeddings (dimension matching the chosen embedding model), the full-text `tsv` column with a GIN index, document and chunk relationships, the embedding model name, and required indexes.

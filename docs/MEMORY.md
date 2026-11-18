@@ -64,6 +64,7 @@ Working mode: opencode is used as a read-only tutor. It shows code in the chat a
 - Stage 2 Piece 6: Manual try-out — 6 questions from sample_questions.jsonl (4 answered, 2 correctly abstained)
 - Stage 3: Evaluation runner `evals/run_eval.py` with retrieval-only and full-run modes, fake mode for testing, report generation in `evals/reports/`, key_facts-based answer correctness checking, manual review flagging, per_question_details sorted by distance
 - TASK-029 (30 evaluation questions) and TASK-030 (evaluation runner) COMPLETE
+- API key foundation (TASK-021): key service (generate/hash/verify), CLI `create-key` command for dev tenant, FastAPI dependency `get_api_key` + `require_scope` + `get_tenant_id` in `app/api/deps.py`, 401/403 behavior, scope check, `last_used_at` update
 ## Current Task
 
 Stage 3 COMPLETE. Next: Stage 4 (not-found guardrail, TASK-027) — evidence threshold calibrated from eval results.
