@@ -23,7 +23,7 @@ async def ingest_file(
     file_path: Path,
     tenant_id: UUID,
     document_id: UUID | None = None,
-    oringinal_filename:str|None = None,
+    original_filename:str|None = None,
     session_factory: async_sessionmaker[AsyncSession] | None = None,
 ) -> int:
     """
@@ -74,7 +74,7 @@ async def ingest_file(
             result = await session.execute(
                 select(Document.id).where(
                     Document.tenant_id == tenant_id,
-                    Document.filename == (oringinal_filename or file_path.name),
+                    Document.filename == (original_filename or file_path.name),
                 )
             )
             existing = result.scalar_one_or_none()
@@ -92,7 +92,7 @@ async def ingest_file(
                     Document(
                         id=document_id,
                         tenant_id=tenant_id,
-                        filename=file_path.name or oringinal_filename,
+                        filename=file_path.name or original_filename,
                         status="processing",
                     )
                 )

@@ -37,3 +37,5 @@ async def redis_lifespan(app):
     await get_redis_pool()
     yield
     await close_redis_pool()
+
+_all__ = ["get_redis_pool", "close_redis_pool", "redis_lifespan"]

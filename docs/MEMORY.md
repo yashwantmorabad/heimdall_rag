@@ -66,6 +66,7 @@ Working mode: opencode is used as a read-only tutor. It shows code in the chat a
 - TASK-029 (30 evaluation questions) and TASK-030 (evaluation runner) COMPLETE
 - API key foundation (TASK-021): key service (generate/hash/verify), CLI `create-key` command for dev tenant, FastAPI dependency `get_api_key` + `require_scope` + `get_tenant_id` in `app/api/deps.py`, 401/403 behavior, scope check, `last_used_at` update
 - POST /v1/documents (TASK-023): file validation (type by content+ext, size, safe names), storage at STORAGE_PATH/<tenant_id>/<document_id>.<ext>, document row status=queued, arq job enqueued, 202 response, cleanup on error, 409 duplicate, 503 Redis down
+- arq worker (TASK-024): `app/workers/ingestion.py` job `ingest_document`, `app/workers/settings.py` WorkerSettings, reuses existing `ingest_file` with `document_id` + `original_filename`, status transitions queued→processing→ready/failed, idempotent retries via unique constraint, safe error messages, no auto-reload
 
 ## Current Task
 

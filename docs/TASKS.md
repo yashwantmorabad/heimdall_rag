@@ -57,7 +57,7 @@ Recommended order: 020, 021, 022, 023, 024, 025, 031, 026, 029, 030, 027, 028.
   - Done when: the schema supports tenant ownership, vector embeddings (dimension matching the chosen embedding model), the full-text `tsv` column with a GIN index, document and chunk relationships, the embedding model name, and required indexes.
 - [x] **TASK-023** Implement `POST /v1/documents` with upload validation and background queueing.
   - Done when: PDF, TXT, and Markdown files up to the configured size (default 10 MB) are validated by type (content as well as extension), size, and safe filename handling; accepted uploads receive a trackable status and are queued rather than processed in the request; invalid files get structured errors (413, 422).
-- [ ] **TASK-024** Implement the **arq** worker to parse documents, clean and chunk text, create embeddings, and store results.
+- [x] **TASK-024** Implement the **arq** worker to parse documents, clean and chunk text, create embeddings, and store results.
   - Done when: a queued document is processed end to end; statuses move through `queued`, `processing`, and `ready` or `failed` with a safe error description; retries never create duplicate chunks; and the original file is removed or kept according to the storage setting. Use arq, not Celery or RQ.
 - [ ] **TASK-025** Implement document endpoints: `GET /v1/documents`, `GET /v1/documents/{id}`, and `DELETE /v1/documents/{id}`.
   - Done when: users can list, inspect, and delete only their own tenant's documents; deleting a document deletes its chunks; other tenants' documents return 404.
