@@ -45,3 +45,11 @@ def require_scope(required_scope: str):
 async def _get_tenant_id(api_key: ApiKey = Depends(get_api_key)) -> UUID:
     "Extract the tenant_id from the authenticated API key."
     return api_key.tenant_id
+
+from fastapi import Depends, Request
+
+async def get_redis_pool(request: Request):
+    "Dependency to get Redis pool from app state."
+    return request.app.state.redis
+
+__all__ = ["get_api_key", "require_scope", "_get_tenant_id", "get_redis_pool"]
