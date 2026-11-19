@@ -1,16 +1,18 @@
-"Document endpoints: upload, list, get, delete."
-
 from uuid import UUID
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status, Query
 
-from app.api.deps import get_api_key, require_scope, get_tenant_id, get_redis_pool, get_session
-from app.services.documents import(
+from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
+
+from app.api.deps import get_api_key, require_scope, get_tenant_id, get_session
+from app.services.documents import (
     validate_file_content,
     save_uploaded_file,
     create_document_record,
     enqueue_ingestion_job,
     mark_document_failed,
+    get_document,
+    delete_document,
 )
 from app.db.models.document import Document
 from app.core.config import get_settings
@@ -40,21 +42,20 @@ async def upload_document(
     settings = get_settings()
     max_size = settings.max_upload_mb * 1024 * 1024  # Convert MB to bytes
 
-    # Vaildate filename
+    # Vaidate file name 
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "invalid_file", "message": "Filename is required"},
         )
+
     ext = Path(file.filename).suffix.lower()
     if ext not in {".pdf", ".txt", ".md"}:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "invalid_file", "message": f"Unsupported file type: {ext}. Allowed: .pdf, .txt, .md"},
         )
-
-    # Validate file size (FastAPI reads into memory for small files, but we check content-length)
-    content_length = file.headers.get("content-length")
+     content_length = file.headers.get("content-length")
     if content_length and int(content_length) > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
@@ -65,6 +66,7 @@ async def upload_document(
     validate_file_content(file, ext)
 
     # Generate document ID and save file
+    from uuid import uuid4
     document_id = UUID(str(uuid4()))
     saved_path = None
 
@@ -95,17 +97,76 @@ async def upload_document(
         ) from e
 
 
-# Placeholder for GET/DELETE (Piece 5)
-@router.get("/documents")
-async def list_documents():
-    return {"documents": []}
+@router.get(
+    "/documents",
+    dependencies=[Depends(require_scope("documents"))],
+)
+async def list_documents_endpoint(
+    tenant_id: UUID = Depends(get_tenant_id),
+    session: AsyncSession = Depends(get_session),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    """List documents for the authenticated tenant."""
+    docs = await list_documents(session, tenant_id, limit, offset)
+    return {
+        "documents": [
+            {
+                "document_id": str(d.id),
+                "filename": d.filename,
+                "status": d.status,
+                "error": d.error,
+                "created_at": d.created_at.isoformat(),
+            }
+            for d in docs
+        ],
+        "limit": limit,
+        "offset": offset,
+    }
 
 
-@router.get("/documents/{document_id}")
-async def get_document(document_id: UUID):
-    return {"document_id": str(document_id)}
+@router.get(
+    "/documents/{document_id}",
+    dependencies=[Depends(require_scope("documents"))],
+)
+async def get_document_endpoint(
+    document_id: UUID,
+    tenant_id: UUID = Depends(get_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    """Get a single document by ID (tenant-scoped). Returns 404 if not found."""
+    doc = await get_document(session, tenant_id, document_id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "not_found", "message": "Document not found"},
+        )
+    return {
+        "document_id": str(doc.id),
+        "filename": doc.filename,
+        "status": doc.status,
+        "error": doc.error,
+        "created_at": doc.created_at.isoformat(),
+    }
 
 
-@router.delete("/documents/{document_id}")
-async def delete_document(document_id: UUID):
-    return {"deleted": True}
+@router.delete(
+    "/documents/{document_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_scope("documents"))],
+)
+async def delete_document_endpoint(
+    document_id: UUID,
+    tenant_id: UUID = Depends(get_tenant_id),
+    session: AsyncSession = Depends(get_session),
+):
+    """Delete a document, its chunks, and the stored file. Returns 404 if not found."""
+    settings = get_settings()
+    storage_root = Path(settings.storage_path).resolve()
+
+    deleted = await delete_document(session, tenant_id, document_id, storage_root)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "not_found", "message": "Document not found"},
+        )

@@ -120,3 +120,70 @@ async def mark_document_failed(session: AsyncSession, document_id: UUID, error: 
         .values(status="failed", error=error)
     )
     await session.commit()
+
+async def  list_documents(
+        session: AsyncSession,
+        tenant_id: UUID,
+        limit: int = 50,
+        offset: int = 0,
+) -> list[Document]:
+    from sqlalchemy import select
+    result = await session.execute(
+        select(Document)
+        .where(Document.tenant_id == tenant_id)
+        .order_by(Document.created_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return result.scalars().all()
+
+async def get_document(
+        session: AsyncSession,
+        tenant_id: UUID,
+        document_id: UUID,
+) -> Document | None:
+    from sqlalchemy import select
+    result = await session.execute(
+        select(Document).where(
+            Document.id == document_id,
+            Document.tenant_id == tenant_id
+        )
+    )
+    return result.scalar_one_or_none()
+async def delete_document(
+    session: AsyncSession,
+    tenant_id: UUID,
+    document_id: UUID,
+    storage_path: Path,
+) -> bool:
+    """
+    Delete a document, its chunks, and the stored file.
+    Returns True if deleted, False if not found.
+    """
+    from sqlalchemy import delete, select
+    from app.db.models.chunk import Chunk as ChunkModel
+
+    # Find document (tenant-scoped)
+    doc = await get_document(session, tenant_id, document_id)
+    if not doc:
+        return False
+
+    # Delete chunks first (FK constraint)
+    await session.execute(
+        delete(ChunkModel).where(ChunkModel.document_id == document_id)
+    )
+
+    # Delete document row
+    await session.execute(
+        delete(Document).where(Document.id == document_id)
+    )
+    await session.commit()
+
+    # Delete stored file
+    for ext in (".pdf", ".txt", ".md"):
+        file_path = storage_path / str(tenant_id) / f"{document_id}{ext}"
+        if file_path.exists():
+            file_path.unlink(missing_ok=True)
+            break
+
+    return True
