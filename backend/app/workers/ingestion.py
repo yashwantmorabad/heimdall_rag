@@ -12,7 +12,7 @@ from app.rag.ingestion.pipeline import ingest_file
 from app.services.documents import mark_document_failed
 from app.core.config import get_settings
 
-async def ingest_document(ctx, doucment_id: str, tenant_id: str) -> dict:
+async def ingest_document(ctx, document_id: str, tenant_id: str) -> dict:
     """
     arq job to ingest a document.
 
@@ -24,16 +24,16 @@ async def ingest_document(ctx, doucment_id: str, tenant_id: str) -> dict:
     Returns:
         Dict with status for arq result tracking
     """
-    doc_id = UUID(doucment_id)
+    doc_id = UUID(document_id)
     tenant_uuid = UUID(tenant_id)
     settings = get_settings()
 
     storage_root = Path(settings.storage_path).resolve()
-    tanant_dir = storage_root / str(tenant_uuid)
+    tenant_dir = storage_root / str(tenant_uuid)
 
     file_path = None
     for ext in (".pdf", ".txt",".md"):
-        candidate = tanant_dir / f"{doc_id}{ext}"
+        candidate = tenant_dir / f"{doc_id}{ext}"
         if candidate.exists():
             file_path = candidate
             break

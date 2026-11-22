@@ -119,6 +119,7 @@ def create_key(
     name: str = typer.Argument(..., help="Key name/description"),
     tenant_id: UUID = typer.Option(DEFAULT_TENANT_ID, "--tenant-id", help="Tenant UUID"),
     scopes: str = typer.Option("documents,query", "--scopes", help="Comma-separated scopes"),
+    expires_days: int | None = typer.Option(None, "--expires-days", help="Expiry in days (optional)"),
 ):
     """
     Create a new API key for the dev tenant.
@@ -129,19 +130,19 @@ def create_key(
     The key is shown ONCE - Save it anywhere secure. It cannot be retrieved again.
     """
     from app.services.keys import create_api_key
-    from app.app.db.session import AsyncSessionLocal
+    from app.db.session import AsyncSessionLocal
     from datetime import datetime, timezone, timedelta
     import asyncio
 
-    scope_list =[s.strip() for s in scopes.split(",")]
+    scope_list = [s.strip() for s in scopes.split(",")]
 
     async def _create():
-        async with AsyncSessionLocal() as sesssion:
+        async with AsyncSessionLocal() as session:
             expires_at = None
-            if  expires_days:
+            if expires_days:
                 expires_at = datetime.now(timezone.utc) + timedelta(days=expires_days)
-                api_key, full_key = await create_api_key(session, tenant_id, name, scope_list, expires_at)
-                return api_key, full_key
+            api_key, full_key = await create_api_key(session, tenant_id, name, scope_list, expires_at)
+            return api_key, full_key
 
     try:
         api_key, full_key = asyncio.run(_create())
@@ -151,9 +152,9 @@ def create_key(
         if api_key.expires_at:
             typer.echo(f"Expires: {api_key.expires_at.isoformat()}")
         typer.echo("")
-        typer.echo(f"🔑 API Key (shown ONCE): {full_key}")
+        typer.echo(f"API Key (shown ONCE): {full_key}")
         typer.echo("")
-        typer.echo("Save this key — it cannot be shown again.")
+        typer.echo("Save this key - it cannot be shown again.")
     except ValueError as e:
         typer.echo(f"Error: {e}", err=True)
         sys.exit(1)

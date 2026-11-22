@@ -76,7 +76,7 @@ async def create_document_record(
     Raises 409 if same tenant already has this failure.
     """
     # Check for duplicate filename(unique constraint on tenant_id + filename)
-    result = await seesion.execute(
+    result = await session.execute(
         select(Document.id).where(
             Document.tenant_id == tenant_id,
             Document.filename == original_filename,
@@ -91,7 +91,7 @@ async def create_document_record(
     doc = Document(
         id=document_id,
         tenant_id=tenant_id,
-        fileaname=original_filename,
+        filename=original_filename,
         status="queued",
     )
     session.add(doc)
@@ -100,9 +100,9 @@ async def create_document_record(
     return doc
 
 async def enqueue_ingestion_job(document_id: UUID, tenant_id: UUID) -> None:
-    "Enqueue the ingestion job to arc/redis."
+    "Enqueue the ingestion job to arq/redis."
     try:
-        reids = await get_redis_pool()
+        redis = await get_redis_pool()
         await redis.enqueue_job("ingest_document", document_id=str(document_id), tenant_id=str(tenant_id))
     except Exception as e:
         # Redis unavailable or enqueue failed

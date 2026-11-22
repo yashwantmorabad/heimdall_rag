@@ -11,16 +11,20 @@ async def get_redis_pool():
     global _redis_pool
     if _redis_pool is None:
         settings = get_settings()
-        # Parse redis_url
+        # Parse redis_url and use 127.0.0.1 instead of localhost for Windows async compatibility
         from urllib.parse import urlparse
         parsed = urlparse(settings.redis_url)
+        host = parsed.hostname or "localhost"
+        if host == "localhost":
+            host = "127.0.0.1"
         _redis_pool = await create_pool(
             RedisSettings(
-                host=parsed.hostname or "localhost",
+                host=host,
                 port=parsed.port or 6379,
                 database=int(parsed.path.lstrip("/")) if parsed.path else 0,
                 password=parsed.password or None,
-            )
+            ),
+            default_queue_name="heimdall:jobs",
         )
     return _redis_pool
 
