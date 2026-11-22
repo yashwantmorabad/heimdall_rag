@@ -13,6 +13,7 @@ from app.services.documents import (
     mark_document_failed,
     get_document,
     delete_document,
+    list_documents,
 )
 from app.db.models.document import Document
 from app.core.config import get_settings
@@ -55,7 +56,7 @@ async def upload_document(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "invalid_file", "message": f"Unsupported file type: {ext}. Allowed: .pdf, .txt, .md"},
         )
-     content_length = file.headers.get("content-length")
+    content_length = file.headers.get("content-length")
     if content_length and int(content_length) > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,

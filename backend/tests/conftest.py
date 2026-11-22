@@ -77,6 +77,23 @@ async def db_session() -> AsyncSession:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# Override FastAPI get_session dependency to use test database
+# ──────────────────────────────────────────────────────────────────────────────
+@pytest_asyncio.fixture(autouse=True)
+async def override_get_session(db_session: AsyncSession):
+    """Override get_session to use test database for all tests."""
+    from app.main import app
+    from app.db.session import get_session as original_get_session
+    
+    async def _get_test_session():
+        yield db_session
+    
+    app.dependency_overrides[original_get_session] = _get_test_session
+    yield
+    app.dependency_overrides.clear()
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # Backward-compat export (if any test imports AsyncTestSessionLocal directly)
 # ──────────────────────────────────────────────────────────────────────────────
-__all__ = ["AsyncTestSessionLocal", "db_session"]
+__all__ = ["AsyncTestSessionLocal", "db_session", "override_get_session"]

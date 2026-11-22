@@ -2,8 +2,8 @@
 
 from contextlib import asynccontextmanager
 from arq import create_pool
-from arq.core.config import get_settings
-from arq.core.connections import RedisSettings
+from app.core.config import get_settings
+from arq.connections import RedisSettings
 
 _redis_pool = None
 async def get_redis_pool():

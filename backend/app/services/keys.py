@@ -68,7 +68,7 @@ async def create_api_key(
         )
     )
     active_count = len(result.scalars().all())
-    if active_count >= settings.max_active_api_keys_per_tenant:
+    if active_count >= settings.max_active_keys_per_tenant:
         raise ValueError(f"Maximum active keys per tenant ({settings.max_active_keys_per_tenant}) reached")
 
     full_key, key_prefix, key_hash = generate_key()

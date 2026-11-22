@@ -11,19 +11,28 @@ from app.services.keys import authenticate_api_key
 from app.db.models.api_key import ApiKey
 
 async def get_api_key(
-        x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
-        session: AsyncSession = Depends(get_session),
-    ) -> ApiKey:
+    x_api_key: Annotated[str | None, Header(alias="X-API-Key")] = None,
+    session: AsyncSession = Depends(get_session),
+) -> ApiKey:
     """
     Extract and validate API key from X-API-Key header.
 
-    Returns the authenticated ApiKey model 
+    Returns the authenticated ApiKey model (includes tenant_id).
+    Raises 401 if missing, invalid, revoked, or expired.
     """
     if not x_api_key:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "unauthorized", "message": "Invalid or revoked API-Key."},
+            detail={"code": "unauthorized", "message": "Missing X-API-Key header"},
         )
+
+    api_key = await authenticate_api_key(session, x_api_key)
+    if not api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "unauthorized", "message": "Invalid or revoked API key"},
+        )
+
     return api_key
 
 def require_scope(required_scope: str):
@@ -42,7 +51,7 @@ def require_scope(required_scope: str):
         return api_key
     return _check_scope
 
-async def _get_tenant_id(api_key: ApiKey = Depends(get_api_key)) -> UUID:
+async def get_tenant_id(api_key: ApiKey = Depends(get_api_key)) -> UUID:
     "Extract the tenant_id from the authenticated API key."
     return api_key.tenant_id
 
@@ -52,4 +61,4 @@ async def get_redis_pool(request: Request):
     "Dependency to get Redis pool from app state."
     return request.app.state.redis
 
-__all__ = ["get_api_key", "require_scope", "_get_tenant_id", "get_redis_pool"]
+__all__ = ["get_api_key", "require_scope", "get_tenant_id", "get_redis_pool"]
