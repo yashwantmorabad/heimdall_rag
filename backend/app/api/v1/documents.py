@@ -24,11 +24,12 @@ router = APIRouter()
     "/documents",
     status_code=status.HTTP_202_ACCEPTED,
     dependencies=[Depends(require_scope("documents"))],
+    response_model=None,
 )
 async def upload_document(
     file: UploadFile = File(...),
     tenant_id: UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
+    session=Depends(get_session),
 ):
     """
     Upload a document for processing.
@@ -43,7 +44,7 @@ async def upload_document(
     settings = get_settings()
     max_size = settings.max_upload_mb * 1024 * 1024  # Convert MB to bytes
 
-    # Vaidate file name 
+    # Validate file name 
     if not file.filename:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -56,8 +57,9 @@ async def upload_document(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail={"code": "invalid_file", "message": f"Unsupported file type: {ext}. Allowed: .pdf, .txt, .md"},
         )
-    content_length = file.headers.get("content-length")
-    if content_length and int(content_length) > max_size:
+    # Check file size using file.size attribute (works for multipart uploads)
+    file_size = getattr(file, "size", None)
+    if file_size is not None and file_size > max_size:
         raise HTTPException(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail={"code": "file_too_large", "message": f"File exceeds {settings.max_upload_mb} MB limit"},
@@ -78,7 +80,14 @@ async def upload_document(
         await create_document_record(session, tenant_id, document_id, file.filename, saved_path)
 
         # Enqueue ingestion job
-        await enqueue_ingestion_job(document_id, tenant_id)
+        try:
+            await enqueue_ingestion_job(document_id, tenant_id)
+        except HTTPException:
+            # Queue failed - mark document as failed, cleanup, re-raise
+            await mark_document_failed(session, document_id, "Failed to queue for processing")
+            if saved_path and saved_path.exists():
+                saved_path.unlink(missing_ok=True)
+            raise
 
         return {"document_id": str(document_id), "status": "queued"}
 
@@ -101,10 +110,11 @@ async def upload_document(
 @router.get(
     "/documents",
     dependencies=[Depends(require_scope("documents"))],
+    response_model=None,
 )
 async def list_documents_endpoint(
     tenant_id: UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
+    session=Depends(get_session),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
@@ -129,11 +139,12 @@ async def list_documents_endpoint(
 @router.get(
     "/documents/{document_id}",
     dependencies=[Depends(require_scope("documents"))],
+    response_model=None,
 )
 async def get_document_endpoint(
     document_id: UUID,
     tenant_id: UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
+    session=Depends(get_session),
 ):
     """Get a single document by ID (tenant-scoped). Returns 404 if not found."""
     doc = await get_document(session, tenant_id, document_id)
@@ -155,11 +166,12 @@ async def get_document_endpoint(
     "/documents/{document_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     dependencies=[Depends(require_scope("documents"))],
+    response_model=None,
 )
 async def delete_document_endpoint(
     document_id: UUID,
     tenant_id: UUID = Depends(get_tenant_id),
-    session: AsyncSession = Depends(get_session),
+    session=Depends(get_session),
 ):
     """Delete a document, its chunks, and the stored file. Returns 404 if not found."""
     settings = get_settings()

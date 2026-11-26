@@ -33,14 +33,14 @@ def validate_file_content(file: UploadFile, ext: str) -> None:
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail={"code": "invalid_file", "message": "Uploaded PDF file is invalid."},
             )
-        elif ext in {".txt", ".md"}:
-            try:
-                chunk.decode("utf-8")
-            except UnicodeDecodeError:
-                raise HTTPException(
-                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                    detail={"code": "invalid_file", "message": f"Uploaded {ext} file is not valid UTF-8."},
-                )
+    elif ext in {".txt", ".md"}:
+        try:
+            chunk.decode("utf-8")
+        except UnicodeDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": "invalid_file", "message": f"Uploaded {ext} file is not valid UTF-8."},
+            )
 
 async def save_uploaded_file(
         file: UploadFile,

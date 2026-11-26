@@ -1,6 +1,6 @@
 "Unit tests for the test-database guard function (no database required)."
 import pytest
-from test.conftest import validate_test_database_url
+from tests.conftest import validate_test_database_url
 
 class TestValidateTestDatabaseUrl:
     "Tests fir validate_test_database_url()."
@@ -27,12 +27,12 @@ class TestValidateTestDatabaseUrl:
 
     def test_none_url_rejected(self):
         """None URL is rejected."""
-        with pytest.raises(RuntimeError, match="TEST_DATABASE_URL is not set"):
+        with pytest.raises(RuntimeError, match="TEST_DATABASE_URL not set"):
             validate_test_database_url(None)
 
     def test_empty_string_rejected(self):
         """Empty string URL is rejected."""
-        with pytest.raises(RuntimeError, match="TEST_DATABASE_URL is not set"):
+        with pytest.raises(RuntimeError, match="TEST_DATABASE_URL not set"):
             validate_test_database_url("")
 
     def test_heimdall_test_with_query_params_accepted(self):
