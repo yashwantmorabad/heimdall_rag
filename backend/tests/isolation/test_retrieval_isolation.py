@@ -19,47 +19,46 @@ TENANT_B = UUID("22222222-2222-2222-2222-222222222222")
 
 
 @pytest_asyncio.fixture
-async def isolation_data():
+async def isolation_data(db_session):
     """Create two tenants with identical content but different embeddings."""
-    async with AsyncTestSessionLocal() as session:
-        # Create tenants
-        session.add_all([
-            Tenant(id=TENANT_A, name="Tenant A"),
-            Tenant(id=TENANT_B, name="Tenant B"),
-        ])
-        await session.commit()
+    # Create tenants
+    db_session.add_all([
+        Tenant(id=TENANT_A, name="Tenant A"),
+        Tenant(id=TENANT_B, name="Tenant B"),
+    ])
+    await db_session.commit()
 
-        # Create documents
-        doc_a = Document(id=uuid4(), tenant_id=TENANT_A, filename="tenant_a.pdf", status="ready")
-        doc_b = Document(id=uuid4(), tenant_id=TENANT_B, filename="tenant_b.pdf", status="ready")
-        session.add_all([doc_a, doc_b])
-        await session.commit()
+    # Create documents
+    doc_a = Document(id=uuid4(), tenant_id=TENANT_A, filename="tenant_a.pdf", status="ready")
+    doc_b = Document(id=uuid4(), tenant_id=TENANT_B, filename="tenant_b.pdf", status="ready")
+    db_session.add_all([doc_a, doc_b])
+    await db_session.commit()
 
-        # Identical text for both tenants - tests that tenant filter works, not content
-        text = "The library late fee is $1 per day after the due date."
-        
-        chunks_a = fake_embed_chunks([
-            ChunkDataclass(text=text, token_count=20, page_number=1, chunk_index=0)
-        ])
-        chunks_b = fake_embed_chunks([
-            ChunkDataclass(text=text, token_count=20, page_number=1, chunk_index=0)
-        ])
+    # Identical text for both tenants - tests that tenant filter works, not content
+    text = "The library late fee is $1 per day after the due date."
+    
+    chunks_a = fake_embed_chunks([
+        ChunkDataclass(text=text, token_count=20, page_number=1, chunk_index=0)
+    ])
+    chunks_b = fake_embed_chunks([
+        ChunkDataclass(text=text, token_count=20, page_number=1, chunk_index=0)
+    ])
 
-        for chunk in chunks_a:
-            session.add(ChunkModel(
-                tenant_id=TENANT_A, document_id=doc_a.id,
-                content=chunk.text, chunk_index=chunk.chunk_index,
-                page=chunk.page_number, embedding=chunk.embedding,
-                embedding_model=chunk.embedding_model,
-            ))
-        for chunk in chunks_b:
-            session.add(ChunkModel(
-                tenant_id=TENANT_B, document_id=doc_b.id,
-                content=chunk.text, chunk_index=chunk.chunk_index,
-                page=chunk.page_number, embedding=chunk.embedding,
-                embedding_model=chunk.embedding_model,
-            ))
-        await session.commit()
+    for chunk in chunks_a:
+        db_session.add(ChunkModel(
+            tenant_id=TENANT_A, document_id=doc_a.id,
+            content=chunk.text, chunk_index=chunk.chunk_index,
+            page=chunk.page_number, embedding=chunk.embedding,
+            embedding_model=chunk.embedding_model,
+        ))
+    for chunk in chunks_b:
+        db_session.add(ChunkModel(
+            tenant_id=TENANT_B, document_id=doc_b.id,
+            content=chunk.text, chunk_index=chunk.chunk_index,
+            page=chunk.page_number, embedding=chunk.embedding,
+            embedding_model=chunk.embedding_model,
+        ))
+    await db_session.commit()
 
     # Return doc IDs for assertions
     yield {"doc_a_id": doc_a.id, "doc_b_id": doc_b.id}
@@ -72,11 +71,11 @@ async def isolation_data():
         await session.commit()
 
 
-async def test_tenant_a_search_never_returns_tenant_b_chunks(isolation_data):
+async def test_tenant_a_search_never_returns_tenant_b_chunks(isolation_data, db_session):
     """Tenant A searching for 'late fee' must only get Tenant A's chunk."""
     results = await search_chunks(
         TENANT_A, "What is the library late fee?", top_k=10,
-        session_factory=AsyncTestSessionLocal
+        session_factory=lambda: AsyncTestSessionLocal()
     )
 
     # Should find exactly 1 chunk (Tenant A's)
@@ -84,11 +83,11 @@ async def test_tenant_a_search_never_returns_tenant_b_chunks(isolation_data):
     assert results[0].document_id == isolation_data["doc_a_id"]
 
 
-async def test_tenant_b_search_never_returns_tenant_a_chunks(isolation_data):
+async def test_tenant_b_search_never_returns_tenant_a_chunks(isolation_data, db_session):
     """Tenant B searching for 'late fee' must only get Tenant B's chunk."""
     results = await search_chunks(
         TENANT_B, "What is the library late fee?", top_k=10,
-        session_factory=AsyncTestSessionLocal
+        session_factory=lambda: AsyncTestSessionLocal()
     )
 
     assert len(results) == 1

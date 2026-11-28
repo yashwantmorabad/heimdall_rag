@@ -1,5 +1,6 @@
 """Pytest fixtures for integration tests (test database only)."""
 
+
 import sys
 from pathlib import Path
 from urllib.parse import urlparse
@@ -16,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
+from app.db.models.api_key import ApiKey
 from app.db.models.chunk import Chunk as ChunkModel
 from app.db.models.document import Document
 from app.db.models.tenant import Tenant
@@ -72,6 +74,7 @@ async def db_session() -> AsyncSession:
     async with AsyncTestSessionLocal() as session:
         await session.execute(delete(ChunkModel))
         await session.execute(delete(Document))
+        await session.execute(delete(ApiKey))
         await session.execute(delete(Tenant))
         await session.commit()
 

@@ -36,28 +36,30 @@ def override_dependencies():
 
 
 @pytest.fixture
-def api_key_headers(db_session):
+async def api_key_headers(db_session):
     """Create a test API key and return headers using the test session."""
     from app.services.keys import create_api_key
     from app.db.models.tenant import Tenant
-    from sqlalchemy.dialects.postgresql import insert as pg_insert
+    from sqlalchemy import select
     from uuid import UUID
 
     TENANT_ID = UUID("11111111-1111-1111-1111-111111111111")
     
-    async def _create_key():
-        # Use the test session (db_session) which is already set up with the test database
+    # Ensure tenant exists
+    result = await db_session.execute(select(Tenant).where(Tenant.id == UUID("11111111-1111-1111-1111-111111111111")))
+    tenant = result.scalar_one_or_none()
+    if tenant is None:
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
         await db_session.execute(
-            pg_insert(Tenant).values(id=TENANT_ID, name="test-tenant").on_conflict_do_nothing(index_elements=["id"])
+            pg_insert(Tenant).values(id=TENANT_ID, name="test-tenant")
         )
         await db_session.commit()
-        api_key, full_key = await create_api_key(db_session, TENANT_ID, "Test Key", ["documents", "query"])
-        await db_session.commit()
-        return full_key
     
-    # We need to run this async function - use the event loop from the test
-    import asyncio
-    full_key = asyncio.run(_create_key())
+    from app.services.keys import create_api_key
+    from uuid import UUID
+    TENANT_ID = UUID("11111111-1111-1111-1111-111111111111")
+    api_key, full_key = await create_api_key(db_session, TENANT_ID, "Test Key", ["documents", "query"])
+    await db_session.commit()
     return {"X-API-Key": full_key}
 
 

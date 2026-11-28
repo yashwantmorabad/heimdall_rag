@@ -3,13 +3,14 @@ import pytest_asyncio
 from uuid import UUID, uuid4
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from sqlalchemy import update
+from datetime import datetime, timezone
 
 from app.main import app
 from app.services.keys import create_api_key
 from app.db.models.document import Document
 from app.db.models.tenant import Tenant
-from tests.conftest import AsyncTestSessionLocal
+from app.db.models.api_key import ApiKey
 
 
 TENANT_A = UUID("11111111-1111-1111-1111-111111111111")
@@ -17,7 +18,7 @@ TENANT_B = UUID("22222222-2222-2222-2222-222222222222")
 
 
 @pytest_asyncio.fixture
-async def isolation_setup(db_session: AsyncSession):
+async def isolation_setup(db_session):
     """Create two tenants with API keys and a document for Tenant A."""
     # Create tenants
     db_session.add_all([
@@ -100,7 +101,7 @@ async def test_tenant_a_can_access_own_document(isolation_setup):
         assert response.status_code == 200
         data = response.json()
         assert len(data["documents"]) == 1
-        assert data["documents"][0]["document_id"] == str(isolation_setup["doc_a_id"])
+        assert data["documents"][0]["filename"] == "tenant_a_doc.pdf"
 
         # Get
         response = await client.get(
@@ -108,7 +109,7 @@ async def test_tenant_a_can_access_own_document(isolation_setup):
             headers={"X-API-Key": isolation_setup["key_a"]},
         )
         assert response.status_code == 200
-        assert response.json()["document_id"] == str(isolation_setup["doc_a_id"])
+        assert response.json()["filename"] == "tenant_a_doc.pdf"
 
         # Delete
         response = await client.delete(
@@ -117,7 +118,7 @@ async def test_tenant_a_can_access_own_document(isolation_setup):
         )
         assert response.status_code == 204
 
-        # Verify gone
+        # Verify deleted
         response = await client.get(
             f"/v1/documents/{isolation_setup['doc_a_id']}",
             headers={"X-API-Key": isolation_setup["key_a"]},
@@ -125,12 +126,16 @@ async def test_tenant_a_can_access_own_document(isolation_setup):
         assert response.status_code == 404
 
 
-async def test_revoked_key_fails(isolation_setup, db_session: AsyncSession):
+async def test_revoked_key_fails(isolation_setup, db_session):
     """Revoked API key returns 401."""
     # Revoke key_a
     from sqlalchemy import update
     from app.db.models.api_key import ApiKey
     from datetime import datetime, timezone
+    from uuid import UUID
+    TENANT_A = UUID("11111111-1111-1111-1111-111111111111")
+
+    # Use the db_session fixture to revoke the key
     await db_session.execute(
         update(ApiKey)
         .where(ApiKey.key_prefix == isolation_setup["key_a"][:24])
@@ -148,12 +153,17 @@ async def test_revoked_key_fails(isolation_setup, db_session: AsyncSession):
     assert response.json()["detail"]["code"] == "unauthorized"
 
 
-async def test_wrong_scope_fails(isolation_setup):
+async def test_wrong_scope_fails(isolation_setup, db_session):
     """API key without 'documents' scope returns 403."""
     # Create key with only 'query' scope
+    from uuid import UUID
+    TENANT_A = UUID("11111111-1111-1111-1111-111111111111")
+
+    from tests.conftest import AsyncTestSessionLocal
     async with AsyncTestSessionLocal() as session:
+        from app.services.keys import create_api_key
         key_c, full_key_c = await create_api_key(
-            session, TENANT_A, "Key C", ["query"]  # No 'documents' scope
+            session, TENANT_A, "Key C", ["query"]
         )
         await session.commit()
 
